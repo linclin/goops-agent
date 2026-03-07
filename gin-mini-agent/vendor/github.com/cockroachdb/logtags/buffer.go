@@ -26,10 +26,44 @@ type Buffer struct {
 }
 
 // SingleTagBuffer returns a Buffer with a single tag.
-func SingleTagBuffer(key string, value interface{}) *Buffer {
+func SingleTagBuffer(key string, value any) *Buffer {
 	b := &Buffer{}
 	b.init(1, 1)
 	b.tags[0] = Tag{key: key, value: value}
+	return b
+}
+
+// BuildBuffer is used to build a *Buffer that contains an arbitrary number
+// of tags. Sample usage:
+//
+//	bld := BuildBuffer()
+//	bld.Add("a", 1)
+//	bld.Add("b", 2)
+//	buf := bld.Finish()
+//
+// It is equivalent to using SingleTagBuffer() followed by Buffer.Add() calls,
+// but avoids allocating each intermediate buffer.
+func BuildBuffer() BufferBuilder {
+	bld := BufferBuilder{b: &Buffer{}}
+	bld.b.init(0, 0)
+	return bld
+}
+
+// BufferBuilder is returned by BuildBuffer.
+type BufferBuilder struct {
+	b *Buffer
+}
+
+// Add a log tag to the buffer. If the key was added already, the value is
+// replaced.
+func (bld *BufferBuilder) Add(key string, value any) {
+	bld.b.addOrReplace(key, value)
+}
+
+// Finish returns the buffer with the tags that were added to the builder.
+func (bld *BufferBuilder) Finish() *Buffer {
+	b := bld.b
+	bld.b = nil
 	return b
 }
 
@@ -38,10 +72,24 @@ func (b *Buffer) Get() []Tag {
 	return b.tags
 }
 
+// GetTag returns the tag corresponding to the given key. If the tag doesn't
+// exist, the bool return value will be false.
+func (b *Buffer) GetTag(key string) (Tag, bool) {
+	if b == nil {
+		return Tag{}, false
+	}
+	for _, t := range b.tags {
+		if t.Key() == key {
+			return t, true
+		}
+	}
+	return Tag{}, false
+}
+
 // Add returns a new buffer with one more tag. If the tag has the same key as an
 // earlier tag, that tag is overwritten.
 // The receiver can be nil.
-func (b *Buffer) Add(key string, value interface{}) *Buffer {
+func (b *Buffer) Add(key string, value any) *Buffer {
 	if b == nil {
 		return SingleTagBuffer(key, value)
 	}
@@ -50,6 +98,25 @@ func (b *Buffer) Add(key string, value interface{}) *Buffer {
 	copy(res.tags, b.tags)
 	res.addOrReplace(key, value)
 	return res
+}
+
+// Remove returns a new Buffer with the tag with key `key` removed. If the tag
+// does not exist, the receiver is returned (unchanged). The bool return value
+// is true if the tag existed.
+func (b *Buffer) Remove(key string) (*Buffer, bool) {
+	if b == nil {
+		return nil, false
+	}
+	for i, t := range b.tags {
+		if t.Key() == key {
+			res := &Buffer{}
+			res.init(len(b.tags)-1, 0 /* capacityHint */)
+			copy(res.tags, b.tags[:i])
+			copy(res.tags[i:], b.tags[i+1:])
+			return res, true
+		}
+	}
+	return b, false
 }
 
 // Merge returns a new buffer which contains tags from the receiver, followed by
@@ -121,12 +188,12 @@ func (b *Buffer) String() string {
 }
 
 // FormatToString emits the k/v pairs to a strings.Builder.
-// - the k/v pairs are separated by commas (& no spaces).
-// - if there is no value, only the key is printed.
-// - if there is a value, and the key is just 1 character long,
-//   the key and the value are concatenated.
-//   This supports e.g. printing k="n", v=123 as "n123".
-// - otherwise, it prints "k=v".
+//   - the k/v pairs are separated by commas (& no spaces).
+//   - if there is no value, only the key is printed.
+//   - if there is a value, and the key is just 1 character long,
+//     the key and the value are concatenated.
+//     This supports e.g. printing k="n", v=123 as "n123".
+//   - otherwise, it prints "k=v".
 func (b *Buffer) FormatToString(buf *strings.Builder) {
 	comma := ""
 	for _, t := range b.Get() {
@@ -142,17 +209,23 @@ func (b *Buffer) FormatToString(buf *strings.Builder) {
 	}
 }
 
-func (b *Buffer) init(length, maxLenHint int) {
+// init initializes b.tags to a slice of len `length` (filled with zero values).
+// The slice may have capacity capacityHint. If capacityHint is less than
+// length, it is ignored.
+func (b *Buffer) init(length, capacityHint int) {
 	if length <= staticSlots {
-		// Even if maxLenHint is larger that staticSlots, we still want to try to
+		// Even if capacityHint is larger that staticSlots, we still want to try to
 		// avoid the allocation (especially since tags frequently get deduplicated).
 		b.tags = b.prealloc[:length]
 	} else {
-		b.tags = make([]Tag, length, maxLenHint)
+		if capacityHint < length {
+			capacityHint = length
+		}
+		b.tags = make([]Tag, length, capacityHint)
 	}
 }
 
-func (b *Buffer) addOrReplace(key string, value interface{}) {
+func (b *Buffer) addOrReplace(key string, value any) {
 	for i := range b.tags {
 		if b.tags[i].key == key {
 			b.tags[i].value = value

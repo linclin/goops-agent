@@ -5,10 +5,11 @@ import "log/slog"
 // Configuration 系统配置, 配置字段可参见yml注释
 // viper内置了mapstructure, yml文件用"-"区分单词, 转为驼峰方便
 type Configuration struct {
-	System SystemConfiguration `mapstructure:"system" json:"system"`
-	Logs   LogsConfiguration   `mapstructure:"logs" json:"logs"`
-	Auth   AuthConfiguration   `mapstructure:"auth" json:"auth"`
-	RAG    RAGConfiguration    `mapstructure:"rag" json:"rag"`
+	System  SystemConfiguration  `mapstructure:"system" json:"system"`
+	Logs    LogsConfiguration    `mapstructure:"logs" json:"logs"`
+	Auth    AuthConfiguration    `mapstructure:"auth" json:"auth"`
+	RAG     RAGConfiguration     `mapstructure:"rag" json:"rag"`
+	AiModel AiModelConfiguration `mapstructure:"ai-model" json:"ai-model"`
 }
 
 type SystemConfiguration struct {
@@ -35,11 +36,10 @@ type AuthConfiguration struct {
 }
 
 type RAGConfiguration struct {
-	Type    string              `mapstructure:"type" json:"type"`
-	Redis   RedisConfiguration  `mapstructure:"redis" json:"redis"`
+	Type    string               `mapstructure:"type" json:"type"`
+	Redis   RedisConfiguration   `mapstructure:"redis" json:"redis"`
 	Chromem ChromemConfiguration `mapstructure:"chromem" json:"chromem"`
 	Milvus  MilvusConfiguration  `mapstructure:"milvus" json:"milvus"`
-	ARK     ARKConfiguration     `mapstructure:"ark" json:"ark"`
 }
 
 type RedisConfiguration struct {
@@ -59,8 +59,12 @@ type MilvusConfiguration struct {
 	Collection string `mapstructure:"collection" json:"collection"`
 }
 
-type ARKConfiguration struct {
-	BaseURL        string `mapstructure:"base-url" json:"baseURL"`
-	APIKey         string `mapstructure:"api-key" json:"apiKey"`
-	EmbeddingModel string `mapstructure:"embedding-model" json:"embeddingModel"`
+type AiModelConfiguration struct {
+	EmbeddingModel ChatConfiguration `mapstructure:"embedding-model" json:"embeddingModel"`
+	ChatModel      ChatConfiguration `mapstructure:"chat-model" json:"chatModel"`
+}
+type ChatConfiguration struct {
+	BaseURL string `mapstructure:"base-url" json:"baseURL"`
+	APIKey  string `mapstructure:"api-key" json:"apiKey"`
+	Model   string `mapstructure:"model" json:"model"`
 }

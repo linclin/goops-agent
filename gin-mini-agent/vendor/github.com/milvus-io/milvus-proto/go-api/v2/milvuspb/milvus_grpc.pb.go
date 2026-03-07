@@ -35,6 +35,7 @@ const (
 	MilvusService_AddCollectionFunction_FullMethodName        = "/milvus.proto.milvus.MilvusService/AddCollectionFunction"
 	MilvusService_AlterCollectionFunction_FullMethodName      = "/milvus.proto.milvus.MilvusService/AlterCollectionFunction"
 	MilvusService_DropCollectionFunction_FullMethodName       = "/milvus.proto.milvus.MilvusService/DropCollectionFunction"
+	MilvusService_TruncateCollection_FullMethodName           = "/milvus.proto.milvus.MilvusService/TruncateCollection"
 	MilvusService_CreatePartition_FullMethodName              = "/milvus.proto.milvus.MilvusService/CreatePartition"
 	MilvusService_DropPartition_FullMethodName                = "/milvus.proto.milvus.MilvusService/DropPartition"
 	MilvusService_HasPartition_FullMethodName                 = "/milvus.proto.milvus.MilvusService/HasPartition"
@@ -132,6 +133,7 @@ const (
 	MilvusService_DropRowPolicy_FullMethodName                = "/milvus.proto.milvus.MilvusService/DropRowPolicy"
 	MilvusService_ListRowPolicies_FullMethodName              = "/milvus.proto.milvus.MilvusService/ListRowPolicies"
 	MilvusService_UpdateReplicateConfiguration_FullMethodName = "/milvus.proto.milvus.MilvusService/UpdateReplicateConfiguration"
+	MilvusService_GetReplicateConfiguration_FullMethodName    = "/milvus.proto.milvus.MilvusService/GetReplicateConfiguration"
 	MilvusService_GetReplicateInfo_FullMethodName             = "/milvus.proto.milvus.MilvusService/GetReplicateInfo"
 	MilvusService_CreateReplicateStream_FullMethodName        = "/milvus.proto.milvus.MilvusService/CreateReplicateStream"
 )
@@ -154,6 +156,7 @@ type MilvusServiceClient interface {
 	AddCollectionFunction(ctx context.Context, in *AddCollectionFunctionRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
 	AlterCollectionFunction(ctx context.Context, in *AlterCollectionFunctionRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
 	DropCollectionFunction(ctx context.Context, in *DropCollectionFunctionRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
+	TruncateCollection(ctx context.Context, in *TruncateCollectionRequest, opts ...grpc.CallOption) (*TruncateCollectionResponse, error)
 	CreatePartition(ctx context.Context, in *CreatePartitionRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
 	DropPartition(ctx context.Context, in *DropPartitionRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
 	HasPartition(ctx context.Context, in *HasPartitionRequest, opts ...grpc.CallOption) (*BoolResponse, error)
@@ -273,6 +276,9 @@ type MilvusServiceClient interface {
 	//   - The RPC is expected to be idempotent: submitting the same configuration
 	//     multiple times must not cause side effects.
 	UpdateReplicateConfiguration(ctx context.Context, in *UpdateReplicateConfigurationRequest, opts ...grpc.CallOption) (*commonpb.Status, error)
+	// GetReplicateConfiguration retrieves the current cross-cluster replication topology.
+	// Sensitive fields (like connection tokens) are redacted in the response.
+	GetReplicateConfiguration(ctx context.Context, in *GetReplicateConfigurationRequest, opts ...grpc.CallOption) (*GetReplicateConfigurationResponse, error)
 	// GetReplicateInfo retrieves replication-related metadata of specified channel from a target Milvus cluster.
 	GetReplicateInfo(ctx context.Context, in *GetReplicateInfoRequest, opts ...grpc.CallOption) (*GetReplicateInfoResponse, error)
 	// CreateReplicateStream establishes a replication stream on the target Milvus cluster.
@@ -413,6 +419,15 @@ func (c *milvusServiceClient) AlterCollectionFunction(ctx context.Context, in *A
 func (c *milvusServiceClient) DropCollectionFunction(ctx context.Context, in *DropCollectionFunctionRequest, opts ...grpc.CallOption) (*commonpb.Status, error) {
 	out := new(commonpb.Status)
 	err := c.cc.Invoke(ctx, MilvusService_DropCollectionFunction_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *milvusServiceClient) TruncateCollection(ctx context.Context, in *TruncateCollectionRequest, opts ...grpc.CallOption) (*TruncateCollectionResponse, error) {
+	out := new(TruncateCollectionResponse)
+	err := c.cc.Invoke(ctx, MilvusService_TruncateCollection_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1294,6 +1309,15 @@ func (c *milvusServiceClient) UpdateReplicateConfiguration(ctx context.Context, 
 	return out, nil
 }
 
+func (c *milvusServiceClient) GetReplicateConfiguration(ctx context.Context, in *GetReplicateConfigurationRequest, opts ...grpc.CallOption) (*GetReplicateConfigurationResponse, error) {
+	out := new(GetReplicateConfigurationResponse)
+	err := c.cc.Invoke(ctx, MilvusService_GetReplicateConfiguration_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *milvusServiceClient) GetReplicateInfo(ctx context.Context, in *GetReplicateInfoRequest, opts ...grpc.CallOption) (*GetReplicateInfoResponse, error) {
 	out := new(GetReplicateInfoResponse)
 	err := c.cc.Invoke(ctx, MilvusService_GetReplicateInfo_FullMethodName, in, out, opts...)
@@ -1352,6 +1376,7 @@ type MilvusServiceServer interface {
 	AddCollectionFunction(context.Context, *AddCollectionFunctionRequest) (*commonpb.Status, error)
 	AlterCollectionFunction(context.Context, *AlterCollectionFunctionRequest) (*commonpb.Status, error)
 	DropCollectionFunction(context.Context, *DropCollectionFunctionRequest) (*commonpb.Status, error)
+	TruncateCollection(context.Context, *TruncateCollectionRequest) (*TruncateCollectionResponse, error)
 	CreatePartition(context.Context, *CreatePartitionRequest) (*commonpb.Status, error)
 	DropPartition(context.Context, *DropPartitionRequest) (*commonpb.Status, error)
 	HasPartition(context.Context, *HasPartitionRequest) (*BoolResponse, error)
@@ -1471,6 +1496,9 @@ type MilvusServiceServer interface {
 	//   - The RPC is expected to be idempotent: submitting the same configuration
 	//     multiple times must not cause side effects.
 	UpdateReplicateConfiguration(context.Context, *UpdateReplicateConfigurationRequest) (*commonpb.Status, error)
+	// GetReplicateConfiguration retrieves the current cross-cluster replication topology.
+	// Sensitive fields (like connection tokens) are redacted in the response.
+	GetReplicateConfiguration(context.Context, *GetReplicateConfigurationRequest) (*GetReplicateConfigurationResponse, error)
 	// GetReplicateInfo retrieves replication-related metadata of specified channel from a target Milvus cluster.
 	GetReplicateInfo(context.Context, *GetReplicateInfoRequest) (*GetReplicateInfoResponse, error)
 	// CreateReplicateStream establishes a replication stream on the target Milvus cluster.
@@ -1528,6 +1556,9 @@ func (UnimplementedMilvusServiceServer) AlterCollectionFunction(context.Context,
 }
 func (UnimplementedMilvusServiceServer) DropCollectionFunction(context.Context, *DropCollectionFunctionRequest) (*commonpb.Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DropCollectionFunction not implemented")
+}
+func (UnimplementedMilvusServiceServer) TruncateCollection(context.Context, *TruncateCollectionRequest) (*TruncateCollectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TruncateCollection not implemented")
 }
 func (UnimplementedMilvusServiceServer) CreatePartition(context.Context, *CreatePartitionRequest) (*commonpb.Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePartition not implemented")
@@ -1820,6 +1851,9 @@ func (UnimplementedMilvusServiceServer) ListRowPolicies(context.Context, *ListRo
 func (UnimplementedMilvusServiceServer) UpdateReplicateConfiguration(context.Context, *UpdateReplicateConfigurationRequest) (*commonpb.Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateReplicateConfiguration not implemented")
 }
+func (UnimplementedMilvusServiceServer) GetReplicateConfiguration(context.Context, *GetReplicateConfigurationRequest) (*GetReplicateConfigurationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetReplicateConfiguration not implemented")
+}
 func (UnimplementedMilvusServiceServer) GetReplicateInfo(context.Context, *GetReplicateInfoRequest) (*GetReplicateInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetReplicateInfo not implemented")
 }
@@ -2086,6 +2120,24 @@ func _MilvusService_DropCollectionFunction_Handler(srv interface{}, ctx context.
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MilvusServiceServer).DropCollectionFunction(ctx, req.(*DropCollectionFunctionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MilvusService_TruncateCollection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TruncateCollectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MilvusServiceServer).TruncateCollection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MilvusService_TruncateCollection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MilvusServiceServer).TruncateCollection(ctx, req.(*TruncateCollectionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -3836,6 +3888,24 @@ func _MilvusService_UpdateReplicateConfiguration_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MilvusService_GetReplicateConfiguration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetReplicateConfigurationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MilvusServiceServer).GetReplicateConfiguration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MilvusService_GetReplicateConfiguration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MilvusServiceServer).GetReplicateConfiguration(ctx, req.(*GetReplicateConfigurationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MilvusService_GetReplicateInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetReplicateInfoRequest)
 	if err := dec(in); err != nil {
@@ -3942,6 +4012,10 @@ var MilvusService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DropCollectionFunction",
 			Handler:    _MilvusService_DropCollectionFunction_Handler,
+		},
+		{
+			MethodName: "TruncateCollection",
+			Handler:    _MilvusService_TruncateCollection_Handler,
 		},
 		{
 			MethodName: "CreatePartition",
@@ -4330,6 +4404,10 @@ var MilvusService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateReplicateConfiguration",
 			Handler:    _MilvusService_UpdateReplicateConfiguration_Handler,
+		},
+		{
+			MethodName: "GetReplicateConfiguration",
+			Handler:    _MilvusService_GetReplicateConfiguration_Handler,
 		},
 		{
 			MethodName: "GetReplicateInfo",

@@ -1,5 +1,5 @@
 # syntax=registry.cn-shenzhen.aliyuncs.com/dev-ops/dockerfile:1.17.1
-FROM registry.cn-shenzhen.aliyuncs.com/dev-ops/golang:1.25.0-alpine3.22 as golang
+FROM registry.cn-shenzhen.aliyuncs.com/dev-ops/golang:1.26.0-alpine3.23 as golang
 ENV APP go-gin-rest-api  
 RUN sed -i 's/https/http/' /etc/apk/repositories && \
     sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories && \
@@ -17,7 +17,7 @@ RUN export GitBranch=$(git name-rev --name-only HEAD) && \
     export LDFlags="-s -w -X 'main.GitBranch=${GitBranch}' -X 'main.GitRevision=${GitRevision}' -X 'main.GitCommitLog=${GitCommitLog}' -X 'main.BuildTime=${BuildTime}' -X 'main.BuildGoVersion=${BuildGoVersion}'"  && \
     go build -tags=jsoniter -ldflags="$LDFlags" -o  ./go-gin-rest-api
 
-FROM registry.cn-shenzhen.aliyuncs.com/dev-ops/alpine:3.22.1
+FROM registry.cn-shenzhen.aliyuncs.com/dev-ops/alpine:3.23.2
 LABEL MAINTAINER="13579443@qq.com"
 ENV TZ='Asia/Shanghai' 
 ENV LANG UTF-8

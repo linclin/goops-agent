@@ -106,6 +106,11 @@ var (
 	ErrSegmentLack        = newMilvusError("segment lacks", 602, false)
 	ErrSegmentReduplicate = newMilvusError("segment reduplicates", 603, false)
 	ErrSegmentLoadFailed  = newMilvusError("segment load failed", 604, false)
+	// ErrSegmentRequestResourceFailed indicates the query node cannot load the segment
+	// due to resource exhaustion (Memory, Disk, or GPU). When this error is returned,
+	// the query coordinator will mark the node as resource exhausted and apply a
+	// penalty period during which the node won't receive new loading tasks.
+	ErrSegmentRequestResourceFailed = newMilvusError("segment request resource failed", 605, false)
 
 	// Index related
 	ErrIndexNotFound     = newMilvusError("index not found", 700, false)
@@ -127,9 +132,10 @@ var (
 	ErrNodeStateUnexpected = newMilvusError("node state unexpected", 906, false)
 
 	// IO related
-	ErrIoKeyNotFound = newMilvusError("key not found", 1000, false)
-	ErrIoFailed      = newMilvusError("IO failed", 1001, false)
-	ErrIoUnexpectEOF = newMilvusError("unexpected EOF", 1002, true)
+	ErrIoKeyNotFound     = newMilvusError("key not found", 1000, false)
+	ErrIoFailed          = newMilvusError("IO failed", 1001, false)
+	ErrIoUnexpectEOF     = newMilvusError("unexpected EOF", 1002, true)
+	ErrIoTooManyRequests = newMilvusError("too many requests", 1003, true)
 
 	// Parameter related
 	ErrParameterInvalid  = newMilvusError("invalid parameter", 1100, false)
@@ -218,6 +224,9 @@ var (
 	ErrCleanPartitionStatsFail                    = newMilvusError("fail to clean partition Stats", 2316, true)
 
 	ErrDataNodeSlotExhausted = newMilvusError("datanode slot exhausted", 2401, false)
+
+	// Cipher/Encryption related
+	ErrKMSKeyRevoked = newMilvusError("KMS key has been revoked, access denied", 2500, false)
 
 	// General
 	ErrOperationNotSupported = newMilvusError("unsupported operation", 3000, false)

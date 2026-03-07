@@ -22,6 +22,7 @@ import (
 	"math/bits"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/cockroachdb/errors"
 	"github.com/samber/lo"
@@ -134,7 +135,8 @@ const (
 )
 
 const (
-	JSONStatsDataFormatVersion = 2
+	// Version 3: metadata moved to separate meta.json file (instead of parquet metadata)
+	JSONStatsDataFormatVersion = 3
 )
 
 // Search, Index parameter keys
@@ -187,6 +189,10 @@ const (
 	CollectionTTLConfigKey      = "collection.ttl.seconds"
 	CollectionAutoCompactionKey = "collection.autocompaction.enabled"
 	CollectionDescription       = "collection.description"
+	MaxTTLSeconds               = 3155760000 // 100 years
+
+	// Deprecated: will be removed in the 3.0 after implementing ack sync up semantic.
+	CollectionOnTruncatingKey = "collection.on.truncating" // when collection is on truncating, forbid the compaction of current collection.
 
 	// Note:
 	// Function output fields cannot be included in inserted data.
@@ -197,8 +203,6 @@ const (
 	// rate limit
 	CollectionInsertRateMaxKey   = "collection.insertRate.max.mb"
 	CollectionInsertRateMinKey   = "collection.insertRate.min.mb"
-	CollectionUpsertRateMaxKey   = "collection.upsertRate.max.mb"
-	CollectionUpsertRateMinKey   = "collection.upsertRate.min.mb"
 	CollectionDeleteRateMaxKey   = "collection.deleteRate.max.mb"
 	CollectionDeleteRateMinKey   = "collection.deleteRate.min.mb"
 	CollectionBulkLoadRateMaxKey = "collection.bulkLoadRate.max.mb"
@@ -229,12 +233,22 @@ const (
 	// collection level load properties
 	CollectionReplicaNumber  = "collection.replica.number"
 	CollectionResourceGroups = "collection.resource_groups"
+
+	// CMEK related property keys, used in db and collection properties
+	EncryptionEnabledKey = "cipher.enabled"
+	EncryptionRootKeyKey = "cipher.key"
+	EncryptionEzIDKey    = "cipher.ezID"
+)
+
+// Field properties key
+const (
+	FieldDescriptionKey = "field.description"
 )
 
 // common properties
 const (
 	MmapEnabledKey             = "mmap.enabled"
-	LazyLoadEnableKey          = "lazyload.enabled"
+	LazyLoadEnableKey          = "lazyload.enabled" // deprecated by warmup related params
 	LoadPriorityKey            = "load_priority"
 	PartitionKeyIsolationKey   = "partitionkey.isolation"
 	FieldSkipLoadKey           = "field.skipLoad"
@@ -246,8 +260,18 @@ const (
 	NamespaceEnabledKey        = "namespace.enabled"
 
 	// timezone releated
-	TimezoneKey          = "timezone"
-	AllowInsertAutoIDKey = "allow_insert_auto_id"
+	TimezoneKey             = "timezone"
+	AllowInsertAutoIDKey    = "allow_insert_auto_id"
+	DisableFuncRuntimeCheck = "disable_func_runtime_check"
+
+	// warmup related
+	WarmupKey            = "warmup"
+	WarmupScalarFieldKey = "warmup.scalarField"
+	WarmupScalarIndexKey = "warmup.scalarIndex"
+	WarmupVectorFieldKey = "warmup.vectorField"
+	WarmupVectorIndexKey = "warmup.vectorIndex"
+	WarmupDisable        = "disable"
+	WarmupSync           = "sync"
 )
 
 const (
@@ -289,6 +313,89 @@ func IsMmapIndexEnabled(kvs ...*commonpb.KeyValuePair) (bool, bool) {
 		}
 	}
 	return false, false
+}
+
+// GetWarmupPolicy returns the warmup policy value and whether it exists from key-value pairs
+func GetWarmupPolicy(kvs ...*commonpb.KeyValuePair) (string, bool) {
+	for _, kv := range kvs {
+		if kv.Key == WarmupKey {
+			return kv.Value, true
+		}
+	}
+	return "", false
+}
+
+// GetWarmupPolicyByKey returns the warmup policy for a specific key from key-value pairs
+func GetWarmupPolicyByKey(key string, kvs ...*commonpb.KeyValuePair) (string, bool) {
+	for _, kv := range kvs {
+		if kv.Key == key {
+			return kv.Value, true
+		}
+	}
+	return "", false
+}
+
+// IsWarmupKey checks if a key is any of the warmup-related keys
+func IsWarmupKey(key string) bool {
+	return IsFieldWarmupKey(key) || IsCollectionWarmupKey(key)
+}
+
+// IsFieldWarmupKey checks if a key is the field-level warmup key
+func IsFieldWarmupKey(key string) bool {
+	return key == WarmupKey
+}
+
+// IsCollectionWarmupKey checks if a key is a collection/table-level warmup key
+func IsCollectionWarmupKey(key string) bool {
+	return key == WarmupScalarFieldKey ||
+		key == WarmupScalarIndexKey ||
+		key == WarmupVectorFieldKey ||
+		key == WarmupVectorIndexKey
+}
+
+// ValidateWarmupPolicy validates that the warmup policy value is valid
+func ValidateWarmupPolicy(value string) error {
+	if value != WarmupDisable && value != WarmupSync {
+		return fmt.Errorf("invalid warmup policy: %s, must be '%s' or '%s'", value, WarmupDisable, WarmupSync)
+	}
+	return nil
+}
+
+// FieldHasWarmupKey checks if a field has warmup key set in its TypeParams
+func FieldHasWarmupKey(schema *schemapb.CollectionSchema, fieldID int64) bool {
+	for _, field := range schema.GetFields() {
+		if field.GetFieldID() == fieldID {
+			for _, kv := range field.GetTypeParams() {
+				if kv.Key == WarmupKey {
+					return true
+				}
+			}
+			return false
+		}
+	}
+	// Check struct array fields
+	for _, structField := range schema.GetStructArrayFields() {
+		if structField.GetFieldID() == fieldID {
+			for _, kv := range structField.GetTypeParams() {
+				if kv.Key == WarmupKey {
+					return true
+				}
+			}
+			return false
+		}
+		// Check fields inside struct
+		for _, field := range structField.GetFields() {
+			if field.GetFieldID() == fieldID {
+				for _, kv := range field.GetTypeParams() {
+					if kv.Key == WarmupKey {
+						return true
+					}
+				}
+				return false
+			}
+		}
+	}
+	return false
 }
 
 func GetIndexType(indexParams []*commonpb.KeyValuePair) string {
@@ -360,6 +467,19 @@ func IsPartitionKeyIsolationKvEnabled(kvs ...*commonpb.KeyValuePair) (bool, erro
 			val, err := strconv.ParseBool(strings.ToLower(kv.Value))
 			if err != nil {
 				return false, errors.Wrap(err, "failed to parse partition key isolation")
+			}
+			return val, nil
+		}
+	}
+	return false, nil
+}
+
+func IsDisableFuncRuntimeCheck(kvs ...*commonpb.KeyValuePair) (bool, error) {
+	for _, kv := range kvs {
+		if kv.Key == DisableFuncRuntimeCheck {
+			val, err := strconv.ParseBool(strings.ToLower(kv.Value))
+			if err != nil {
+				return false, errors.Wrap(err, "failed to parse disable_func_runtime_check param")
 			}
 			return val, nil
 		}
@@ -592,10 +712,70 @@ func IsAllowInsertAutoID(kvs ...*commonpb.KeyValuePair) (bool, bool) {
 	return false, false
 }
 
+func GetInt64Value(kvs []*commonpb.KeyValuePair, key string) (result int64, parseErr error, exist bool) {
+	kv := lo.FindOrElse(kvs, nil, func(kv *commonpb.KeyValuePair) bool {
+		return kv.GetKey() == key
+	})
+	if kv == nil {
+		return 0, nil, false
+	}
+
+	result, err := strconv.ParseInt(kv.GetValue(), 10, 64)
+	if err != nil {
+		return 0, err, true
+	}
+	return result, nil, true
+}
+
+func GetStringValue(kvs []*commonpb.KeyValuePair, key string) (result string, exist bool) {
+	kv := lo.FindOrElse(kvs, nil, func(kv *commonpb.KeyValuePair) bool {
+		return kv.GetKey() == key
+	})
+	if kv == nil {
+		return "", false
+	}
+	return kv.GetValue(), true
+}
+
+func GetCollectionTTL(kvs []*commonpb.KeyValuePair, defaultValue time.Duration) (time.Duration, error) {
+	value, parseErr, exist := GetInt64Value(kvs, CollectionTTLConfigKey)
+	if parseErr != nil {
+		return 0, parseErr
+	}
+
+	if !exist {
+		return defaultValue, nil
+	}
+
+	return time.Duration(value) * time.Second, nil
+}
+
+func GetCollectionTTLFromMap(kvs map[string]string, defaultValue time.Duration) (time.Duration, error) {
+	value, exist := kvs[CollectionTTLConfigKey]
+	if !exist {
+		return defaultValue, nil
+	}
+
+	ttlSeconds, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return time.Duration(ttlSeconds) * time.Second, nil
+}
+
 func ConvertWKTToWKB(wktStr string) ([]byte, error) {
 	geomT, err := wkt.Unmarshal(wktStr)
 	if err != nil {
 		return nil, err
 	}
 	return wkb.Marshal(geomT, wkb.NDR, wkbcommon.WKBOptionEmptyPointHandling(wkbcommon.EmptyPointHandlingNaN))
+}
+
+func ConvertWKBToWKT(wkbData []byte) (string, error) {
+	geomT, err := wkb.Unmarshal(wkbData, wkbcommon.WKBOptionEmptyPointHandling(wkbcommon.EmptyPointHandlingNaN))
+	if err != nil {
+		return "", err
+	}
+	return wkt.Marshal(geomT)
 }

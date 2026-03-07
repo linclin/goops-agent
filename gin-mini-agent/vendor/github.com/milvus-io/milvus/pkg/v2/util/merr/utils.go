@@ -759,6 +759,24 @@ func WrapErrSegmentLoadFailed(id int64, msg ...string) error {
 	return err
 }
 
+// WrapErrSegmentRequestResourceFailed creates a resource exhaustion error for segment loading.
+// resourceType should be one of: "Memory", "Disk", "GPU".
+// This error triggers the query coordinator to mark the node as resource exhausted,
+// applying a penalty period controlled by queryCoord.resourceExhaustionPenaltyDuration.
+func WrapErrSegmentRequestResourceFailed(
+	resourceType string,
+	msg ...string,
+) error {
+	err := wrapFields(ErrSegmentRequestResourceFailed,
+		value("resourceType", resourceType),
+	)
+
+	if len(msg) > 0 {
+		err = errors.Wrap(err, strings.Join(msg, "->"))
+	}
+	return err
+}
+
 func WrapErrSegmentNotLoaded(id int64, msg ...string) error {
 	err := wrapFields(ErrSegmentNotLoaded, value("segment", id))
 	if len(msg) > 0 {
@@ -924,6 +942,13 @@ func WrapErrIoUnexpectEOF(key string, err error) error {
 		return nil
 	}
 	return wrapFieldsWithDesc(ErrIoUnexpectEOF, err.Error(), value("key", key))
+}
+
+func WrapErrIoTooManyRequests(key string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return wrapFieldsWithDesc(ErrIoTooManyRequests, err.Error(), value("key", key))
 }
 
 // Parameter related
@@ -1119,6 +1144,12 @@ func WrapErrInconsistentRequery(msg ...string) error {
 		err = errors.Wrap(err, strings.Join(msg, "->"))
 	}
 	return err
+}
+
+func WrapErrKMSKeyRevoked(dbID int64, reason string) error {
+	return wrapFields(ErrKMSKeyRevoked,
+		value("dbID", dbID),
+		value("reason", reason))
 }
 
 func WrapErrCompactionReadDeltaLogErr(msg ...string) error {

@@ -72,7 +72,7 @@ func (h *FieldSchemaHelper) EnableAnalyzer() bool {
 }
 
 func (h *FieldSchemaHelper) GetMultiAnalyzerParams() (string, bool) {
-	if !IsStringType(h.schema.GetDataType()) {
+	if !h.EnableAnalyzer() {
 		return "", false
 	}
 	value, err := h.typeParams.Get("multi_analyzer_params")
@@ -80,9 +80,6 @@ func (h *FieldSchemaHelper) GetMultiAnalyzerParams() (string, bool) {
 }
 
 func (h *FieldSchemaHelper) HasAnalyzerParams() bool {
-	if !IsStringType(h.schema.GetDataType()) {
-		return false
-	}
 	_, err := h.typeParams.Get("analyzer_params")
 	return err == nil
 }

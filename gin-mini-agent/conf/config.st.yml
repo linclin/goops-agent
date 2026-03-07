@@ -34,16 +34,21 @@ rag:
   type: redis
   redis:
     addr: localhost:6379
-    prefix: "rag:"
+    prefix: "devops:"
   chromem:
     path: ./data/chromem
-    collection: "rag_collection"
+    collection: "devops"
   milvus:
     addr: localhost:19530
     username: ""
     password: ""
-    collection: "rag_collection"
-  ark:
-    base-url: https://ark.cn-beijing.volces.com/api/v3
-    api-key: your-ark-api-key
-    embedding-model: your-embedding-model
+    collection: "devops"
+ai-model:
+  embedding-model: 
+    base-url: https://api-inference.modelscope.cn/v1
+    api-key: ms-bdb20aaa-dbc4-4c63-8a75-7f8047f9262f
+    model: Qwen/Qwen3-Embedding-8B
+  chat-model: 
+    base-url: https://api-inference.modelscope.cn/v1
+    api-key: ms-bdb20aaa-dbc4-4c63-8a75-7f8047f9262f
+    model: Qwen/Qwen3.5-27B

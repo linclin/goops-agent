@@ -25,7 +25,7 @@ func RagIndex(c *gin.Context) {
 	if req.DbType != "" {
 		err = rag_index.RagIndexWithType(c.Request.Context(), req.Dir, req.DbType)
 	} else {
-		err = rag_index.RagIndex(c.Request.Context(), req.Dir)
+		err = rag_index.RagIndex(c.Request.Context())
 	}
 
 	if err != nil {
