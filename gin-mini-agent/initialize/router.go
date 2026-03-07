@@ -6,6 +6,7 @@ import (
 	"gin-mini-agent/pkg/global"
 	"gin-mini-agent/router"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	sloggin "github.com/samber/slog-gin"
@@ -22,6 +23,14 @@ func Routers() *gin.Engine {
 	// r := gin.Default()
 	// 创建不带中间件的路由:
 	r := gin.New()
+	// 添加 CORS 中间件
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 	// 初始化Trace中间件
 	r.Use(requestid.New())
 	// slog日志

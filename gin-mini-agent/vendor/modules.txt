@@ -244,6 +244,9 @@ github.com/getsentry/sentry-go/internal/protocol
 github.com/getsentry/sentry-go/internal/ratelimit
 github.com/getsentry/sentry-go/internal/telemetry
 github.com/getsentry/sentry-go/internal/util
+# github.com/gin-contrib/cors v1.7.6
+## explicit; go 1.23.0
+github.com/gin-contrib/cors
 # github.com/gin-contrib/requestid v1.0.5
 ## explicit; go 1.23.0
 github.com/gin-contrib/requestid

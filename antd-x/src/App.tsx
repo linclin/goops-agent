@@ -1,22 +1,14 @@
 import {
-  AppstoreAddOutlined,
   CloudUploadOutlined,
-  CommentOutlined,
   DeleteOutlined,
   EditOutlined,
   EllipsisOutlined,
-  FileSearchOutlined,
-  GlobalOutlined,
-  HeartOutlined,
   PaperClipOutlined,
-  ProductOutlined,
   QuestionCircleOutlined,
-  ScheduleOutlined,
   ShareAltOutlined,
-  SmileOutlined,
   SyncOutlined,
 } from '@ant-design/icons';
-import type { ActionsFeedbackProps, BubbleListProps, ThoughtChainItemProps } from '@ant-design/x';
+import type { BubbleListProps } from '@ant-design/x';
 import {
   Actions,
   Attachments,
@@ -24,33 +16,17 @@ import {
   Conversations,
   Prompts,
   Sender,
-  Think,
-  ThoughtChain,
   Welcome,
   XProvider,
 } from '@ant-design/x';
-import type { ComponentProps } from '@ant-design/x-markdown';
-import XMarkdown from '@ant-design/x-markdown';
-import type { DefaultMessageInfo } from '@ant-design/x-sdk';
-import {
-  DeepSeekChatProvider,
-  SSEFields,
-  useXChat,
-  useXConversations,
-  XModelMessage,
-  XModelParams,
-  XModelResponse,
-  XRequest,
-} from '@ant-design/x-sdk';
+import { XMarkdown } from '@ant-design/x-markdown';
+import { XRequest } from '@ant-design/x-sdk';
 import { Avatar, Button, Flex, type GetProp, message, Pagination, Space } from 'antd';
 import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
-import '@ant-design/x-markdown/themes/light.css';
-import '@ant-design/x-markdown/themes/dark.css';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
-import { useMarkdownTheme } from '../x-markdown/demo/_utils';
-import locale from './_utils/local';
+import locale from './pages/_utils/local';
 
 // ==================== Style ====================
 const useStyle = createStyles(({ token, css }) => {
@@ -62,7 +38,6 @@ const useStyle = createStyles(({ token, css }) => {
       background: ${token.colorBgContainer};
       font-family: AlibabaPuHuiTi, ${token.fontFamily}, sans-serif;
     `,
-    // side 样式
     side: css`
       background: ${token.colorBgLayout}80;
       width: 280px;
@@ -103,7 +78,6 @@ const useStyle = createStyles(({ token, css }) => {
       align-items: center;
       justify-content: space-between;
     `,
-    // chat list 样式
     chat: css`
       height: 100%;
       width: calc(100% - 280px);
@@ -112,12 +86,6 @@ const useStyle = createStyles(({ token, css }) => {
       flex-direction: column;
       padding-block: ${token.paddingLG}px;
       justify-content: space-between;
-      .ant-bubble-content-updating {
-        background-image: linear-gradient(90deg, #ff6b23 0%, #af3cb8 31%, #53b6ff 89%);
-        background-size: 100% 2px;
-        background-repeat: no-repeat;
-        background-position: bottom;
-      }
     `,
     chatPrompt: css`
       .ant-prompts-label {
@@ -144,14 +112,9 @@ const useStyle = createStyles(({ token, css }) => {
       padding-inline: ${token.paddingLG}px;
       box-sizing: border-box;
     `,
-    // sender 样式
     sender: css`
       width: 100%;
       max-width: 840px;
-    `,
-    speechButton: css`
-      font-size: 18px;
-      color: ${token.colorText} !important;
     `,
     senderPrompt: css`
       width: 100%;
@@ -163,34 +126,6 @@ const useStyle = createStyles(({ token, css }) => {
 });
 
 // ==================== Static Config ====================
-const HISTORY_MESSAGES: {
-  [key: string]: DefaultMessageInfo<ChatMessage>[];
-} = {
-  'default-1': [
-    {
-      message: { role: 'user', content: locale.howToQuicklyInstallAndImportComponents },
-      status: 'success',
-    },
-    {
-      message: {
-        role: 'assistant',
-        content: locale.aiMessage_2,
-      },
-      status: 'success',
-    },
-  ],
-  'default-2': [
-    { message: { role: 'user', content: locale.newAgiHybridInterface }, status: 'success' },
-    {
-      message: {
-        role: 'assistant',
-        content: locale.aiMessage_1,
-      },
-      status: 'success',
-    },
-  ],
-};
-
 const DEFAULT_CONVERSATIONS_ITEMS = [
   {
     key: 'default-0',
@@ -241,123 +176,39 @@ const HOT_TOPICS = {
   ],
 };
 
-const DESIGN_GUIDE = {
-  key: '2',
-  label: locale.designGuide,
-  children: [
-    {
-      key: '2-1',
-      icon: <HeartOutlined />,
-      label: locale.intention,
-      description: locale.aiUnderstandsUserNeedsAndProvidesSolutions,
-    },
-    {
-      key: '2-2',
-      icon: <SmileOutlined />,
-      label: locale.role,
-      description: locale.aiPublicPersonAndImage,
-    },
-    {
-      key: '2-3',
-      icon: <CommentOutlined />,
-      label: locale.chat,
-      description: locale.howAICanExpressItselfWayUsersUnderstand,
-    },
-    {
-      key: '2-4',
-      icon: <PaperClipOutlined />,
-      label: locale.interface,
-      description: locale.aiBalances,
-    },
-  ],
-};
-
 const SENDER_PROMPTS: GetProp<typeof Prompts, 'items'> = [
   {
     key: '1',
     description: locale.upgrades,
-    icon: <ScheduleOutlined />,
   },
   {
     key: '2',
     description: locale.components,
-    icon: <ProductOutlined />,
   },
   {
     key: '3',
     description: locale.richGuide,
-    icon: <FileSearchOutlined />,
   },
   {
     key: '4',
     description: locale.installationIntroduction,
-    icon: <AppstoreAddOutlined />,
   },
 ];
 
-const THOUGHT_CHAIN_CONFIG = {
-  loading: {
-    title: locale.modelIsRunning,
-    status: 'loading',
-  },
-  updating: {
-    title: locale.modelIsRunning,
-    status: 'loading',
-  },
-  success: {
-    title: locale.modelExecutionCompleted,
-    status: 'success',
-  },
-  error: {
-    title: locale.executionFailed,
-    status: 'error',
-  },
-  abort: {
-    title: locale.aborted,
-    status: 'abort',
-  },
-};
-
 // ==================== Type ====================
-interface ChatMessage extends XModelMessage {
-  extraInfo?: {
-    feedback: ActionsFeedbackProps['value'];
-  };
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  status?: 'loading' | 'success' | 'error';
 }
 
-// ==================== Context ====================
-const ChatContext = React.createContext<{
-  onReload?: ReturnType<typeof useXChat>['onReload'];
-  setMessage?: ReturnType<typeof useXChat<ChatMessage>>['setMessage'];
-}>({});
-
 // ==================== Sub Component ====================
-
-const ThinkComponent = React.memo((props: ComponentProps) => {
-  const [title, setTitle] = React.useState(`${locale.deepThinking}...`);
-  const [loading, setLoading] = React.useState(true);
-
-  React.useEffect(() => {
-    if (props.streamStatus === 'done') {
-      setTitle(locale.completeThinking);
-      setLoading(false);
-    }
-  }, [props.streamStatus]);
-
-  return (
-    <Think title={title} loading={loading}>
-      {props.children}
-    </Think>
-  );
-});
-
 const Footer: React.FC<{
   id?: string | number;
   content: string;
   status?: string;
-  extraInfo?: ChatMessage['extraInfo'];
-}> = ({ id, content, extraInfo, status }) => {
-  const context = React.useContext(ChatContext);
+}> = ({ id, content, status }) => {
   const Items = [
     {
       key: 'pagination',
@@ -367,13 +218,6 @@ const Footer: React.FC<{
       key: 'retry',
       label: locale.retry,
       icon: <SyncOutlined />,
-      onItemClick: () => {
-        if (id) {
-          context?.onReload?.(id, {
-            userAction: 'retry',
-          });
-        }
-      },
     },
     {
       key: 'copy',
@@ -389,180 +233,221 @@ const Footer: React.FC<{
         />
       ),
     },
-    {
-      key: 'feedback',
-      actionRender: (
-        <Actions.Feedback
-          styles={{
-            liked: {
-              color: '#f759ab',
-            },
-          }}
-          value={extraInfo?.feedback || 'default'}
-          key="feedback"
-          onChange={(val) => {
-            if (id) {
-              context?.setMessage?.(id, () => ({
-                extraInfo: {
-                  feedback: val,
-                },
-              }));
-              message.success(`${id}: ${val}`);
-            } else {
-              message.error('has no id!');
-            }
-          }}
-        />
-      ),
-    },
   ];
   return status !== 'updating' && status !== 'loading' ? (
     <div style={{ display: 'flex' }}>{id && <Actions items={Items} />}</div>
   ) : null;
 };
 
-// ==================== Chat Provider ====================
-/**
- * 🔔 Please replace the BASE_URL, MODEL with your own values.
- */
-const providerCaches = new Map<string, DeepSeekChatProvider>();
-const providerFactory = (conversationKey: string) => {
-  if (!providerCaches.get(conversationKey)) {
-    providerCaches.set(
-      conversationKey,
-      new DeepSeekChatProvider({
-        request: XRequest<XModelParams, Partial<Record<SSEFields, XModelResponse>>>(
-          'http://127.0.0.1:8080/api/v1/agent/chat',
-          {
-            manual: true,
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Basic ' + btoa('admin:admin'),
-            },
-          },
-        ),
-      }),
-    );
+// 客户端渲染包装组件
+const ClientOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [isClient, setIsClient] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null;
   }
-  return providerCaches.get(conversationKey);
-};
 
-const historyMessageFactory = (conversationKey: string): DefaultMessageInfo<ChatMessage>[] => {
-  return HISTORY_MESSAGES[conversationKey] || [];
+  return <>{children}</>;
 };
-
-const getRole = (className: string): BubbleListProps['role'] => ({
-  assistant: {
-    placement: 'start',
-    header: (_, { status }) => {
-      const config = THOUGHT_CHAIN_CONFIG[status as keyof typeof THOUGHT_CHAIN_CONFIG];
-      return config ? (
-        <ThoughtChain.Item
-          style={{
-            marginBottom: 8,
-          }}
-          status={config.status as ThoughtChainItemProps['status']}
-          variant="solid"
-          icon={<GlobalOutlined />}
-          title={config.title}
-        />
-      ) : null;
-    },
-    footer: (content, { status, key, extraInfo }) => (
-      <Footer
-        content={content}
-        status={status}
-        extraInfo={extraInfo as ChatMessage['extraInfo']}
-        id={key as string}
-      />
-    ),
-    contentRender: (content: any, { status }) => {
-      const newContent = content.replace(/\n\n/g, '<br/><br/>');
-      return (
-        <XMarkdown
-          paragraphTag="div"
-          components={{
-            think: ThinkComponent,
-          }}
-          className={className}
-          streaming={{
-            hasNextChunk: status === 'updating',
-            enableAnimation: true,
-          }}
-        >
-          {newContent}
-        </XMarkdown>
-      );
-    },
-  },
-  user: { placement: 'end' },
-});
 
 const Independent: React.FC = () => {
   const { styles } = useStyle();
+
   // ==================== State ====================
-
-  const {
-    conversations,
-    activeConversationKey,
-    setActiveConversationKey,
-    addConversation,
-    setConversations,
-  } = useXConversations({
-    defaultConversations: DEFAULT_CONVERSATIONS_ITEMS,
-    defaultActiveConversationKey: DEFAULT_CONVERSATIONS_ITEMS[0].key,
-  });
-
-  const [className] = useMarkdownTheme();
+  const [conversations, setConversations] = useState(DEFAULT_CONVERSATIONS_ITEMS);
+  const [activeConversationKey, setActiveConversationKey] = useState(DEFAULT_CONVERSATIONS_ITEMS[0].key);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isRequesting, setIsRequesting] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<GetProp<typeof Attachments, 'items'>>([]);
-
   const [inputValue, setInputValue] = useState('');
-
   const listRef = useRef<BubbleListRef>(null);
 
-  // ==================== Runtime ====================
+  // ==================== XRequest ====================
+  const sendMessage = async (content: string) => {
+    if (!content.trim()) return;
 
-  const { onRequest, messages, isRequesting, abort, onReload, setMessage } = useXChat<ChatMessage>({
-    provider: providerFactory(activeConversationKey), // every conversation has its own provider
-    conversationKey: activeConversationKey,
-    defaultMessages: historyMessageFactory(activeConversationKey),
-    requestPlaceholder: () => {
-      return {
-        content: locale.noData,
+    // 添加用户消息
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: content,
+      status: 'success',
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue('');
+    setIsRequesting(true);
+
+    // 添加助手消息（加载中）
+    const assistantId = (Date.now() + 1).toString();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: assistantId,
         role: 'assistant',
-      };
-    },
-    requestFallback: (_, { error, errorInfo, messageInfo }) => {
-      if (error.name === 'AbortError') {
-        return {
-          content: messageInfo?.message?.content || locale.requestAborted,
-          role: 'assistant',
-        };
+        content: '',
+        status: 'loading',
+      },
+    ]);
+
+    try {
+      let assistantContent = '';
+
+      XRequest('http://127.0.0.1:8080/api/v1/agent/chat', {
+        params: {
+          id: activeConversationKey,
+          query: content,
+          history: messages.filter(m => m.status === 'success' && m.content).map(m => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+          })),
+        },
+        headers: {
+          'Authorization': 'Basic ' + btoa('admin:admin'),
+        },
+        callbacks: {
+          onSuccess: (messages) => {
+            console.log('onSuccess', messages);
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId ? { ...m, content: assistantContent, status: 'success' } : m
+              )
+            );
+          },
+          onError: (error) => {
+            console.error('onError', error);
+            let errorMessage = locale.requestFailed;
+            
+            if (error instanceof Error) {
+              if (error.message.includes('404')) {
+                errorMessage = '接口不存在，请检查后端服务是否运行';
+              } else if (error.message.includes('401')) {
+                errorMessage = '认证失败，请检查用户名和密码';
+              } else if (error.message.includes('403')) {
+                errorMessage = '权限不足，无法访问该接口';
+              } else if (error.message.includes('network')) {
+                errorMessage = '网络连接失败，请检查网络设置';
+              } else {
+                errorMessage = `请求失败: ${error.message}`;
+              }
+            }
+            
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === assistantId
+                  ? { ...m, content: errorMessage, status: 'error' }
+                  : m
+              )
+            );
+            messageApi.error(errorMessage);
+          },
+          onUpdate: (msg) => {
+            console.log('onUpdate raw:', msg, 'type:', typeof msg);
+            // 解析 SSE 消息，提取 data 字段
+            let text = '';
+            
+            try {
+              // 将 msg 转换为字符串（如果是对象则转为 JSON 字符串）
+              const msgStr = typeof msg === 'object' ? JSON.stringify(msg) : String(msg);
+              console.log('msgStr:', msgStr);
+              
+              // 尝试解析 JSON
+              const parsed = JSON.parse(msgStr);
+              console.log('parsed:', parsed);
+              
+              // 提取 data 字段（data 字段可能是字符串或 JSON 字符串）
+              if (parsed && parsed.data) {
+                const dataValue = parsed.data;
+                console.log('dataValue:', dataValue, 'type:', typeof dataValue);
+                
+                // 如果 data 是 JSON 字符串，再次解析
+                if (typeof dataValue === 'string' && dataValue.startsWith('{')) {
+                  try {
+                    const innerParsed = JSON.parse(dataValue);
+                    if (innerParsed.data) {
+                      text = innerParsed.data;
+                    } else {
+                      text = dataValue;
+                    }
+                  } catch (e) {
+                    // data 不是 JSON 字符串，直接使用
+                    text = dataValue;
+                  }
+                } else {
+                  text = dataValue;
+                }
+                console.log('extracted text:', text);
+              }
+            } catch (e) {
+              console.error('Parse error:', e);
+              // 解析失败，尝试直接使用
+              text = String(msg);
+            }
+            
+            if (text && text !== '[object Object]') {
+              assistantContent += text;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantId
+                    ? { ...m, content: assistantContent, status: 'success' }
+                    : m
+                )
+              );
+            }
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Request failed:', error);
+      let errorMessage = locale.requestFailed;
+      
+      if (error instanceof Error) {
+        if (error.message.includes('404')) {
+          errorMessage = '接口不存在，请检查后端服务是否运行';
+        } else if (error.message.includes('401')) {
+          errorMessage = '认证失败，请检查用户名和密码';
+        } else if (error.message.includes('403')) {
+          errorMessage = '权限不足，无法访问该接口';
+        } else if (error.message.includes('network')) {
+          errorMessage = '网络连接失败，请检查网络设置';
+        } else {
+          errorMessage = `请求失败: ${error.message}`;
+        }
       }
-      return {
-        content: errorInfo?.error?.message || locale.requestFailed,
-        role: 'assistant',
-      };
-    },
-  });
+      
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? { ...m, content: errorMessage, status: 'error' }
+            : m
+        )
+      );
+      messageApi.error(errorMessage);
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   // ==================== Event ====================
-  const onSubmit = (val: string) => {
-    if (!val) return;
-    onRequest({
-      messages: [{ role: 'user', content: val }],
-    });
+  const onSubmit = async (val: string) => {
+    await sendMessage(val);
     listRef.current?.scrollTo({ top: 'bottom' });
-    setActiveConversationKey(activeConversationKey);
+  };
+
+  const addConversation = (conversation: { key: string; label: string; group: string }) => {
+    setConversations((prev) => [...prev, conversation]);
+    setMessages([]);
   };
 
   // ==================== Nodes ====================
   const chatSide = (
     <div className={styles.side}>
-      {/* 🌟 Logo */}
+      {/* Logo */}
       <div className={styles.logo}>
         <img
           src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
@@ -573,7 +458,8 @@ const Independent: React.FC = () => {
         />
         <span>Ant Design X</span>
       </div>
-      {/* 🌟 会话管理 */}
+
+      {/* 会话管理 */}
       <Conversations
         creation={{
           onClick: () => {
@@ -597,7 +483,10 @@ const Independent: React.FC = () => {
         }))}
         className={styles.conversations}
         activeKey={activeConversationKey}
-        onActiveChange={setActiveConversationKey}
+        onActiveChange={(key) => {
+          setActiveConversationKey(key);
+          setMessages([]);
+        }}
         groupable
         styles={{ item: { padding: '0 8px' } }}
         menu={(conversation) => ({
@@ -618,6 +507,7 @@ const Independent: React.FC = () => {
                 setConversations(newList);
                 if (conversation.key === activeConversationKey) {
                   setActiveConversationKey(newKey);
+                  setMessages([]);
                 }
               },
             },
@@ -632,25 +522,37 @@ const Independent: React.FC = () => {
     </div>
   );
 
+  const getRole = (): BubbleListProps['role'] => ({
+    assistant: {
+      placement: 'start',
+      avatar: {
+        icon: <img src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*s5sNRo5LjfQAAAAAAAAAAAAADgCCAQ/fmt.webp" width={32} />,
+      },
+      footer: (content, { status, key }) => (
+        <Footer content={content} status={status} id={key as string} />
+      ),
+    },
+    user: { placement: 'end' },
+  });
+
   const chatList = (
     <div className={styles.chatList}>
       {messages?.length ? (
-        /* 🌟 消息列表 */
         <Bubble.List
           ref={listRef}
           items={messages?.map((i) => ({
-            ...i.message,
             key: i.id,
+            role: i.role,
+            content: i.role === 'assistant' ? <XMarkdown content={i.content} /> : i.content,
             status: i.status,
             loading: i.status === 'loading',
-            extraInfo: i.extraInfo,
           }))}
           styles={{
             root: {
               maxWidth: 940,
             },
           }}
-          role={getRole(className)}
+          role={getRole()}
         />
       ) : (
         <Flex
@@ -701,28 +603,12 @@ const Independent: React.FC = () => {
               }}
               className={styles.chatPrompt}
             />
-
-            <Prompts
-              items={[DESIGN_GUIDE]}
-              styles={{
-                item: {
-                  flex: 1,
-                  backgroundImage: 'linear-gradient(123deg, #e5f4ff 0%, #efe7ff 100%)',
-                  borderRadius: 12,
-                  border: 'none',
-                },
-                subItem: { background: '#ffffffa6' },
-              }}
-              onItemClick={(info) => {
-                onSubmit(info.data.description as string);
-              }}
-              className={styles.chatPrompt}
-            />
           </Flex>
         </Flex>
       )}
     </div>
   );
+
   const senderHeader = (
     <Sender.Header
       title={locale.uploadFile}
@@ -746,6 +632,7 @@ const Independent: React.FC = () => {
       />
     </Sender.Header>
   );
+
   const chatSender = (
     <Flex
       vertical
@@ -755,7 +642,7 @@ const Independent: React.FC = () => {
         marginInline: 24,
       }}
     >
-      {/* 🌟 提示词 */}
+      {/* 提示词 */}
       {!attachmentsOpen && (
         <Prompts
           items={SENDER_PROMPTS}
@@ -768,17 +655,16 @@ const Independent: React.FC = () => {
           className={styles.senderPrompt}
         />
       )}
-      {/* 🌟 输入框 */}
+      {/* 输入框 */}
       <Sender
         value={inputValue}
         header={senderHeader}
         onSubmit={() => {
           onSubmit(inputValue);
-          setInputValue('');
         }}
         onChange={setInputValue}
         onCancel={() => {
-          abort();
+          setIsRequesting(false);
         }}
         prefix={
           <Button
@@ -796,36 +682,18 @@ const Independent: React.FC = () => {
   );
 
   // ==================== Render =================
-
   return (
     <XProvider locale={locale}>
-      <ChatContext.Provider value={{ onReload, setMessage }}>
-        {contextHolder}
-        <div className={styles.layout}>
-          {chatSide}
-          <div className={styles.chat}>
-            {chatList}
-            {chatSender}
-          </div>
+      {contextHolder}
+      <div className={styles.layout}>
+        {chatSide}
+        <div className={styles.chat}>
+          {chatList}
+          {chatSender}
         </div>
-      </ChatContext.Provider>
+      </div>
     </XProvider>
   );
-};
-
-// 客户端渲染包装组件
-const ClientOnly: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isClient, setIsClient] = React.useState(false);
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  if (!isClient) {
-    return null;
-  }
-
-  return <>{children}</>;
 };
 
 const App: React.FC = () => {

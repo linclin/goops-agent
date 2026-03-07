@@ -71,6 +71,9 @@ func Chat(c *gin.Context) {
 	defer streamReader.Close()
 
 	// 设置 SSE 响应头
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
 	c.Stream(func(w io.Writer) bool {
 		// 发送开始事件
 		sse.Encode(w, sse.Event{

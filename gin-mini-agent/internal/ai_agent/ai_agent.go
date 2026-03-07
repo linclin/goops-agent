@@ -31,7 +31,7 @@ func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema
 		InputToQuery   = "InputToQuery"
 		ChatTemplate   = "ChatTemplate"
 		ReactAgent     = "ReactAgent"
-		RedisRetriever = "RedisRetriever"
+		Retriever      = "Retriever"
 		InputToHistory = "InputToHistory"
 	)
 	g := compose.NewGraph[*UserMessage, *schema.Message]()
@@ -46,17 +46,17 @@ func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema
 		return nil, err
 	}
 	_ = g.AddLambdaNode(ReactAgent, reactAgentKeyOfLambda, compose.WithNodeName("ReAct Agent"))
-	redisRetrieverKeyOfRetriever, err := newRetriever(ctx)
+	retrieverKeyOfRetriever, err := newRetriever(ctx)
 	if err != nil {
 		return nil, err
 	}
-	_ = g.AddRetrieverNode(RedisRetriever, redisRetrieverKeyOfRetriever, compose.WithOutputKey("documents"))
+	_ = g.AddRetrieverNode(Retriever, retrieverKeyOfRetriever, compose.WithOutputKey("documents"))
 	_ = g.AddLambdaNode(InputToHistory, compose.InvokableLambdaWithOption(newLambda2), compose.WithNodeName("UserMessageToVariables"))
 	_ = g.AddEdge(compose.START, InputToQuery)
 	_ = g.AddEdge(compose.START, InputToHistory)
 	_ = g.AddEdge(ReactAgent, compose.END)
-	_ = g.AddEdge(InputToQuery, RedisRetriever)
-	_ = g.AddEdge(RedisRetriever, ChatTemplate)
+	_ = g.AddEdge(InputToQuery, Retriever)
+	_ = g.AddEdge(Retriever, ChatTemplate)
 	_ = g.AddEdge(InputToHistory, ChatTemplate)
 	_ = g.AddEdge(ChatTemplate, ReactAgent)
 	r, err = g.Compile(ctx, compose.WithGraphName("AiAgent"), compose.WithNodeTriggerMode(compose.AllPredecessor))

@@ -68,6 +68,19 @@ func (c *chromemRetriever) Retrieve(ctx context.Context, query string, opts ...r
 		float32Vec[i] = float32(v)
 	}
 
+	// 获取集合中的文档数量
+	count := c.collection.Count()
+
+	// 确保 topK 不超过集合中的文档数量
+	if topK > count {
+		topK = count
+	}
+
+	// 如果集合为空，直接返回空结果
+	if count == 0 {
+		return []*schema.Document{}, nil
+	}
+
 	// 查询集合
 	results, err := c.collection.QueryEmbedding(ctx, float32Vec, topK, nil, nil)
 	if err != nil {

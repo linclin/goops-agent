@@ -39,7 +39,7 @@
 ```bash
 curl -X POST http://localhost:8080/api/v1/agent/chat \
   -H "Content-Type: application/json" \
-  -u "username:password" \
+  -u "admin:admin" \
   -d '{
     "id": "session-001",
     "query": "你好，请介绍一下自己",
@@ -89,7 +89,7 @@ data:
 ```bash
 curl -X POST http://localhost:8080/api/v1/agent/chat/non-stream \
   -H "Content-Type: application/json" \
-  -u "username:password" \
+  -u "admin:admin" \
   -d '{
     "id": "session-001",
     "query": "你好",
@@ -131,7 +131,7 @@ curl -X POST http://localhost:8080/api/v1/agent/chat/non-stream \
 ```bash
 curl -X POST http://localhost:8080/api/v1/rag/index \
   -H "Content-Type: application/json" \
-  -u "username:password" \
+  -u "admin:admin" \
   -d '{
     "dir": "./documents",
     "dbType": "chromem"

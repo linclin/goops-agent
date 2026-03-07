@@ -31,7 +31,7 @@ auth:
   user: admin
   password: admin
 rag:
-  type: redis
+  type: chromem
   redis:
     addr: 172.31.116.212:1835
     prefix: "devops:"
