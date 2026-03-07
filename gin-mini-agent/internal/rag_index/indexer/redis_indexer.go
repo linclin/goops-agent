@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/cloudwego/eino-ext/components/indexer/redis"
 	"github.com/cloudwego/eino/components/embedding"
@@ -18,15 +19,67 @@ import (
 const (
 	ContentField  = "content"
 	MetadataField = "metadata"
-	VectorField   = "vector"
+	VectorField   = "content_vector"
 )
+
+func InitRedisIndex(ctx context.Context, client *redisCli.Client) (err error) {
+	if err = client.Ping(ctx).Err(); err != nil {
+		return fmt.Errorf("failed to connect to Redis: %w", err)
+	}
+
+	indexName := fmt.Sprintf("%s%s", global.Conf.RAG.Redis.Prefix, "vector_index")
+
+	// 检查是否存在索引
+	exists, err := client.Do(ctx, "FT.INFO", indexName).Result()
+	if err != nil {
+		if !strings.Contains(err.Error(), "Unknown index name") {
+			return fmt.Errorf("failed to check if index exists: %w", err)
+		}
+		err = nil
+	} else if exists != nil {
+		return nil
+	}
+
+	// Create new index
+	createIndexArgs := []interface{}{
+		"FT.CREATE", indexName,
+		"ON", "HASH",
+		"PREFIX", "1", global.Conf.RAG.Redis.Prefix,
+		"SCHEMA",
+		ContentField, "TEXT",
+		MetadataField, "TEXT",
+		VectorField, "VECTOR", "FLAT",
+		"6",
+		"TYPE", "FLOAT32",
+		"DIM", 4096,
+		"DISTANCE_METRIC", "COSINE",
+	}
+
+	if err = client.Do(ctx, createIndexArgs...).Err(); err != nil {
+		return fmt.Errorf("failed to create index: %w", err)
+	}
+
+	// 验证索引是否创建成功
+	if _, err = client.Do(ctx, "FT.INFO", indexName).Result(); err != nil {
+		return fmt.Errorf("failed to verify index creation: %w", err)
+	}
+
+	return nil
+}
 
 func NewRedisIndexer(ctx context.Context, embedder embedding.Embedder) (idr indexer.Indexer, err error) {
 	redisClient := redisCli.NewClient(&redisCli.Options{
 		Addr:     global.Conf.RAG.Redis.Addr,
 		Protocol: 2,
 	})
-
+	defer func() {
+		if err != nil {
+			redisClient.Close()
+		}
+	}()
+	if err = InitRedisIndex(ctx, redisClient); err != nil {
+		return nil, err
+	}
 	config := &redis.IndexerConfig{
 		Client:    redisClient,
 		KeyPrefix: global.Conf.RAG.Redis.Prefix,

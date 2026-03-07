@@ -34,6 +34,8 @@ func init() {
 	initialize.Validate("zh")
 	// 初始化定时任务
 	initialize.Cron()
+	// 初始化 AI Agent
+	initialize.InitAiAgent()
 }
 
 func main() {

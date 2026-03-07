@@ -37,7 +37,8 @@ func Routers() *gin.Engine {
 	apiGroup := r.Group(global.Conf.System.UrlPathPrefix)
 	// 方便统一添加路由前缀
 	v1Group := apiGroup.Group("v1")
-	router.InitRagRouter(v1Group) // 注册 RAG 路由
+	router.InitRagRouter(v1Group)   // 注册 RAG 路由
+	router.InitAgentRouter(v1Group) // 注册 Agent 路由
 	global.Log.Info("初始化基础路由完成")
 	return r
 }
