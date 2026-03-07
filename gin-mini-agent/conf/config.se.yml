@@ -1,0 +1,49 @@
+# prod
+system:
+  # 系统名称
+  app-name: gin-mini-agent
+  # 系统环境
+  run-mode: st
+  # url前缀
+  url-path-prefix: api
+  # 程序监听端口
+  port: 8080
+  # API地址
+  base-api: http://127.0.0.1:8080
+  # 开启全局事务管理器
+  transaction: true
+  # 是否初始化数据(没有初始数据时使用, 已发布正式版谨慎使用)
+  init-data: true
+logs:
+  # 日志等级(-4:Debug, 0:Info,4:Warn, 8:Error, 参照slog.level源码)
+  level: -4
+  # 日志路径
+  path: logs
+  # 文件最大大小, M
+  max-size: 50
+  # 备份数
+  max-backups: 100
+  # 存放时间, 天
+  max-age: 7
+  # 是否压缩
+  compress: true
+auth: 
+  user: admin
+  password: admin
+rag:
+  type: redis
+  redis:
+    addr: localhost:6379
+    prefix: "rag:"
+  chromem:
+    path: ./data/chromem
+    collection: "rag_collection"
+  milvus:
+    addr: localhost:19530
+    username: ""
+    password: ""
+    collection: "rag_collection"
+  ark:
+    base-url: https://ark.cn-beijing.volces.com/api/v3
+    api-key: your-ark-api-key
+    embedding-model: your-embedding-model

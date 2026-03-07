@@ -1,0 +1,9 @@
+.idea
+.vscode
+./tmp/
+./logs/*
+main.exe
+main
+gin-mini-agent
+gin-mini-agent.exe
+gin-mini-agent.exe~
