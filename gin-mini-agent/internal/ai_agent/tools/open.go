@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package open
+package tools
 
 import (
 	"context"
@@ -57,40 +57,40 @@ func NewOpenFileTool(ctx context.Context, config *OpenFileToolConfig) (tn tool.B
 }
 
 func (of *OpenFileToolImpl) ToEinoTool() (tool.InvokableTool, error) {
-	return utils.InferTool("open", "open a file/dir/web url in the system by default application", of.Invoke)
+	return utils.InferTool("open", "在系统默认应用中打开文件/目录/网页链接", of.Invoke)
 }
 
 func (of *OpenFileToolImpl) Invoke(ctx context.Context, req OpenReq) (res OpenRes, err error) {
 	if req.URI == "" {
-		res.Message = "uri is required"
+		res.Message = "URI 不能为空"
 		return res, nil
 	}
 
-	// if is file or dir, check if exists
+	// 如果是文件或目录，检查是否存在
 	if isFilePath(req.URI) {
 		req.URI = strings.TrimPrefix(req.URI, "file:///")
 		if _, err := os.Stat(req.URI); err != nil {
-			res.Message = fmt.Sprintf("file not exists: %s", req.URI)
+			res.Message = fmt.Sprintf("文件不存在: %s", req.URI)
 			return res, nil
 		}
 	}
 
 	err = openURI(req.URI)
 	if err != nil {
-		res.Message = fmt.Sprintf("failed to open %s: %s", req.URI, err.Error())
+		res.Message = fmt.Sprintf("打开失败 %s: %s", req.URI, err.Error())
 		return res, nil
 	}
 
-	res.Message = fmt.Sprintf("success, open %s", req.URI)
+	res.Message = fmt.Sprintf("成功，已打开 %s", req.URI)
 	return res, nil
 }
 
 type OpenReq struct {
-	URI string `json:"uri" jsonschema_description:"The uri of the file/dir/web url to open"`
+	URI string `json:"uri" jsonschema_description:"要打开的文件/目录/网页链接的 URI"`
 }
 
 type OpenRes struct {
-	Message string `json:"message" jsonschema_description:"The message of the operation"`
+	Message string `json:"message" jsonschema_description:"操作消息"`
 }
 
 func openURI(uri string) error {
@@ -103,7 +103,7 @@ func openURI(uri string) error {
 	case "linux":
 		cmd = exec.Command("xdg-open", uri)
 	default:
-		return fmt.Errorf("Unsupported Platform")
+		return fmt.Errorf("不支持的平台")
 	}
 	return cmd.Run()
 }

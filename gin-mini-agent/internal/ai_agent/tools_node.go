@@ -21,18 +21,33 @@ import (
 
 	"github.com/cloudwego/eino/components/tool"
 
-	open "gin-mini-agent/internal/ai_agent/tools"
+	tools "gin-mini-agent/internal/ai_agent/tools"
 )
 
 func GetTools(ctx context.Context) ([]tool.BaseTool, error) {
+	// 创建打开文件工具（自定义）
 	toolOpen, err := NewOpenFileTool(ctx)
 	if err != nil {
 		return nil, err
 	}
+	// 创建文件编辑器工具（官方库）
+	toolFileEditor, err := tools.NewFileEditorTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	// 创建浏览器自动化工具（官方库）
+	toolBrowserUse, err := tools.NewBrowserUseTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return []tool.BaseTool{
 		toolOpen,
+		toolFileEditor,
+		toolBrowserUse,
 	}, nil
 }
+
 func NewOpenFileTool(ctx context.Context) (tn tool.BaseTool, err error) {
-	return open.NewOpenFileTool(ctx, nil)
+	return tools.NewOpenFileTool(ctx, nil)
 }
