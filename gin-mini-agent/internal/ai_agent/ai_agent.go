@@ -35,23 +35,30 @@ func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema
 		InputToHistory = "InputToHistory"
 	)
 	g := compose.NewGraph[*UserMessage, *schema.Message]()
+
 	_ = g.AddLambdaNode(InputToQuery, compose.InvokableLambdaWithOption(newLambda), compose.WithNodeName("UserMessageToQuery"))
+
 	chatTemplateKeyOfChatTemplate, err := newChatTemplate(ctx)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddChatTemplateNode(ChatTemplate, chatTemplateKeyOfChatTemplate)
+
 	reactAgentKeyOfLambda, err := newReactAgent(ctx)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddLambdaNode(ReactAgent, reactAgentKeyOfLambda, compose.WithNodeName("ReAct Agent"))
+
 	retrieverKeyOfRetriever, err := newRetriever(ctx)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddRetrieverNode(Retriever, retrieverKeyOfRetriever, compose.WithOutputKey("documents"))
+
 	_ = g.AddLambdaNode(InputToHistory, compose.InvokableLambdaWithOption(newLambda2), compose.WithNodeName("UserMessageToVariables"))
+
+	// 构建图结构
 	_ = g.AddEdge(compose.START, InputToQuery)
 	_ = g.AddEdge(compose.START, InputToHistory)
 	_ = g.AddEdge(ReactAgent, compose.END)
@@ -59,6 +66,7 @@ func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema
 	_ = g.AddEdge(Retriever, ChatTemplate)
 	_ = g.AddEdge(InputToHistory, ChatTemplate)
 	_ = g.AddEdge(ChatTemplate, ReactAgent)
+
 	r, err = g.Compile(ctx, compose.WithGraphName("AiAgent"), compose.WithNodeTriggerMode(compose.AllPredecessor))
 	if err != nil {
 		return nil, err
