@@ -55,6 +55,7 @@ func Chat(c *gin.Context) {
 		models.FailWithMessage("AI Agent 未初始化", c)
 		return
 	}
+
 	// 准备输入消息
 	userMessage := &ai_agent.UserMessage{
 		ID:      req.ID,
@@ -69,6 +70,9 @@ func Chat(c *gin.Context) {
 		return
 	}
 	defer streamReader.Close()
+
+	// 用于收集 AI 回复内容
+	var aiResponse string
 
 	// 设置 SSE 响应头
 	c.Header("Content-Type", "text/event-stream")
@@ -92,6 +96,18 @@ func Chat(c *gin.Context) {
 						Event: "done",
 						Data:  "",
 					})
+
+					// 异步存储对话历史到向量数据库
+					if aiResponse != "" && ai_agent.GlobalConversationManager != nil {
+						go func(userQuery, response string) {
+							// 使用后台上下文存储，不阻塞响应
+							storeCtx := c.Request.Context()
+							if storeErr := ai_agent.GlobalConversationManager.Store(storeCtx, userQuery, response); storeErr != nil {
+								// 存储失败只记录日志，不影响用户体验
+								// log.Printf("存储对话历史失败: %v", storeErr)
+							}
+						}(req.Query, aiResponse)
+					}
 					break
 				} else {
 					// 发生错误，发送错误事件
@@ -109,6 +125,9 @@ func Chat(c *gin.Context) {
 
 			// 处理接收到的消息
 			if resp != nil && resp.Content != "" {
+				// 收集 AI 回复内容
+				aiResponse += resp.Content
+
 				// 逐字发送消息内容
 				for _, char := range resp.Content {
 					data, _ := json.Marshal(SSEEvent{
@@ -154,6 +173,16 @@ func ChatNonStream(c *gin.Context) {
 	if err != nil {
 		models.FailWithMessage("调用 AI Agent 失败: "+err.Error(), c)
 		return
+	}
+
+	// 存储对话历史到向量数据库
+	if resp.Content != "" && ai_agent.GlobalConversationManager != nil {
+		go func(userQuery, response string) {
+			if storeErr := ai_agent.GlobalConversationManager.Store(c.Request.Context(), userQuery, response); storeErr != nil {
+				// 存储失败只记录日志，不影响用户体验
+				// log.Printf("存储对话历史失败: %v", storeErr)
+			}
+		}(req.Query, resp.Content)
 	}
 
 	models.OkWithData(gin.H{
