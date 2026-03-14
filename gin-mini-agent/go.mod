@@ -3,21 +3,20 @@ module gin-mini-agent
 go 1.26
 
 require (
-	github.com/cloudwego/eino v0.8.0
-	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260310075812-cb9c90b6a56a
-	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260310134446-560454126ae1
-	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260310134446-560454126ae1
-	github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260310134446-560454126ae1
-	github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260310134446-560454126ae1
-	github.com/cloudwego/eino-ext/components/model/openai v0.1.8
+	github.com/cloudwego/eino v0.8.1
+	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.9
 	github.com/cloudwego/eino-ext/components/retriever/milvus2 v0.1.0
-	github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260310075812-cb9c90b6a56a
-	github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260310075812-cb9c90b6a56a
-	github.com/cloudwego/eino-ext/components/tool/commandline v0.0.0-20260310075812-cb9c90b6a56a
+	github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/tool/httprequest v0.0.0-20260313050455-88e279b3b32f
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-contrib/requestid v1.0.5
-	github.com/gin-contrib/sse v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/locales v0.14.1
 	github.com/go-playground/universal-translator v0.18.1
@@ -53,11 +52,11 @@ require (
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/cilium/ebpf v0.21.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260310075812-cb9c90b6a56a // indirect
-	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.13 // indirect
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260313050455-88e279b3b32f // indirect
+	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.14 // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
-	github.com/cockroachdb/redact v1.1.7 // indirect
+	github.com/cockroachdb/redact v1.1.8 // indirect
 	github.com/containerd/cgroups/v3 v3.1.3 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -72,6 +71,7 @@ require (
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/getsentry/sentry-go v0.43.0 // indirect
+	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-json-experiment/json v0.0.0-20260214004413-d219187c3433 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
-	github.com/goccy/go-json v0.10.5 // indirect
+	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -127,7 +127,7 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.24.5 // indirect
-	github.com/shoenig/go-m1cpu v0.1.7 // indirect
+	github.com/shoenig/go-m1cpu v0.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
 	github.com/soheilhy/cmux v0.1.5 // indirect
@@ -175,15 +175,15 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.25.0 // indirect
-	golang.org/x/crypto v0.48.0 // indirect
-	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
-	golang.org/x/net v0.51.0 // indirect
+	golang.org/x/crypto v0.49.0 // indirect
+	golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90 // indirect
+	golang.org/x/net v0.52.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c // indirect
 	google.golang.org/grpc v1.79.2 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

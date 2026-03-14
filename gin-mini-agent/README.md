@@ -19,7 +19,7 @@
 #### 1. SSE 流式聊天接口
 
 **请求信息**
-- 路径：`POST /api/v1/agent/chat`
+- 路径：`POST /api/v1/agent/chat/sse`
 - 认证：Basic Auth
 - Content-Type：`application/json`
 
@@ -37,7 +37,7 @@
 
 **请求示例**
 ```bash
-curl -X POST http://localhost:8080/api/v1/agent/chat \
+curl -X POST http://localhost:8080/api/v1/agent/chat/sse \
   -H "Content-Type: application/json" \
   -u "admin:admin" \
   -d '{
@@ -69,7 +69,7 @@ data:
 #### 2. 非流式聊天接口
 
 **请求信息**
-- 路径：`POST /api/v1/agent/chat/non-stream`
+- 路径：`POST /api/v1/agent/chat/sync`
 - 认证：Basic Auth
 - Content-Type：`application/json`
 
@@ -87,7 +87,7 @@ data:
 
 **请求示例**
 ```bash
-curl -X POST http://localhost:8080/api/v1/agent/chat/non-stream \
+curl -X POST http://localhost:8080/api/v1/agent/chat/sync \
   -H "Content-Type: application/json" \
   -u "admin:admin" \
   -d '{

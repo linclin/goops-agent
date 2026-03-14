@@ -16,15 +16,23 @@ goops-agent/
 
 ### 核心功能
 - **智能对话**：基于大语言模型的流式对话能力
-- **工具调用**：集成多种工具，支持浏览器自动化、命令行执行等操作
+- **工具调用**：集成多种工具，支持浏览器自动化、HTTP请求、文件操作、代码执行等
 - **RAG 增强**：检索增强生成，提升模型回答的准确性和时效性
-- **向量检索**：支持 Milvus 和 Redis 向量数据库
+- **向量检索**：支持 Chromem、Milvus 和 Redis 向量数据库
 - **文档处理**：支持文件加载、分割和向量化
+- **对话历史**：支持将对话历史存储到向量数据库中进行上下文检索
 
 ### 工具集成
-- **浏览器自动化**：访问网页、提取内容、执行网页操作
-- **命令行工具**：文件编辑、Python 代码执行 
-- **文件操作**：打开和查看文件
+| 工具名称 | 功能说明 | 实现方式 |
+|---------|---------|---------|
+| open | 打开文件或URL，读取内容 | 自定义实现 |
+| str_replace_editor | 文件编辑器，支持创建、查看、编辑文件 | 自定义实现 |
+| python_execute | 执行 Python 代码字符串 | 自定义实现 |
+| request_get | 发送 HTTP GET 请求 | 官方库 eino-ext |
+| request_post | 发送 HTTP POST 请求 | 官方库 eino-ext |
+| request_put | 发送 HTTP PUT 请求 | 官方库 eino-ext |
+| request_delete | 发送 HTTP DELETE 请求 | 官方库 eino-ext |
+| browser_use | 浏览器自动化，支持网页交互和内容提取 | 官方库 eino-ext |
 
 ## 技术栈
 
@@ -49,19 +57,13 @@ goops-agent/
 | Go | 1.26 | 后端开发语言 |
 | Gin | ^1.12.0 | Web 框架 |
 | CloudWeGo Eino | ^0.8.0 | AI 框架 |
+| eino-ext | latest | Eino 扩展组件（HTTP请求、浏览器自动化等） |
 | Milvus | ^2.6.2 | 向量数据库 |
 | Redis | ^9.18.0 | 缓存和向量存储 |
 | Chromem | ^0.7.0 | 向量检索 |
 | OpenAI | - | 模型和嵌入 |
 | Viper | ^1.21.0 | 配置管理 |
 | Cron | ^3.0.1 | 定时任务 |
-
-### 工具集成
-
-| 工具 | 版本 | 用途 |
-|-----|------|------|
-| browseruse | latest | 浏览器自动化 |
-| commandline | latest | 命令行工具 | 
 
 ## 快速开始
 
@@ -97,7 +99,7 @@ go run main.go
 
 ## API 接口
 
-### 对话接口
+### 流式对话接口
 
 - **URL**: `/api/v1/agent/chat`
 - **方法**: `POST`
@@ -109,6 +111,19 @@ go run main.go
   }
   ```
 - **响应**: SSE (Server-Sent Events) 流式返回
+
+### 同步对话接口
+
+- **URL**: `/api/v1/agent/chat/sync`
+- **方法**: `POST`
+- **Content-Type**: `application/json`
+- **请求体**:
+  ```json
+  {
+    "message": "你好，请帮我查询天气"
+  }
+  ```
+- **响应**: JSON 格式完整响应
 
 ### RAG 索引接口
 
@@ -126,9 +141,10 @@ go run main.go
 - `config.se.yml` - 开发环境配置
 
 主要配置项：
-- **模型配置**：OpenAI API 密钥、模型名称
-- **向量数据库**：Milvus/Redis 连接信息
-- **工具配置**：浏览器、命令行工具配置
+- **模型配置**：OpenAI API 密钥、模型名称、Base URL
+- **向量数据库**：Chromem/Milvus/Redis 连接信息
+- **RAG 配置**：文档分割、嵌入模型配置
+- **工具配置**：浏览器、HTTP请求等工具配置
 
 ## 项目架构
 
@@ -152,9 +168,23 @@ antd-x/
 gin-mini-agent/
 ├── api/               # API 接口
 │   └── v1/            # API 版本
+│       └── agent/     # Agent 相关接口
 ├── internal/          # 内部实现
 │   ├── ai_agent/      # AI 代理实现
-│   │   └── tools/     # 工具定义
+│   │   ├── tools/     # 工具定义
+│   │   │   ├── open.go           # 文件打开工具
+│   │   │   ├── fileeditor.go     # 文件编辑工具
+│   │   │   ├── pyexecutor.go     # Python执行工具
+│   │   │   ├── httprequest.go    # HTTP请求工具
+│   │   │   └── browseruse.go     # 浏览器自动化工具
+│   │   ├── retriever/ # 向量检索器实现
+│   │   │   ├── chromem_retriever.go
+│   │   │   ├── redis_retriever.go
+│   │   │   └── milvus_retriever.go
+│   │   ├── ai_agent.go           # Agent 主逻辑
+│   │   ├── tools_node.go         # 工具注册
+│   │   ├── chat_template.go      # 提示词模板
+│   │   └── conversation_manager.go # 对话历史管理
 │   └── rag_index/     # RAG 索引实现
 ├── middleware/        # 中间件
 ├── initialize/        # 初始化
@@ -165,21 +195,62 @@ gin-mini-agent/
 
 ## 工具使用示例
 
-### 浏览器工具
+### 文件打开工具
+
+```json
+{
+  "path": "/path/to/file.txt"
+}
+```
+
+### 文件编辑工具
+
+```json
+{
+  "command": "view",
+  "path": "/path/to/file.txt",
+  "view_range": [1, 100]
+}
+```
+
+```json
+{
+  "command": "str_replace",
+  "path": "/path/to/file.txt",
+  "old_str": "旧内容",
+  "new_str": "新内容"
+}
+```
+
+### Python 执行工具
+
+```json
+{
+  "code": "print('Hello, World!')"
+}
+```
+
+### HTTP 请求工具
+
+GET 请求：
+```json
+"https://api.example.com/data"
+```
+
+POST 请求：
+```json
+{
+  "url": "https://api.example.com/create",
+  "body": {"name": "test", "value": 123}
+}
+```
+
+### 浏览器自动化工具
 
 ```json
 {
   "action": "go_to_url",
   "url": "https://www.example.com"
-}
-```
-
-### 命令行工具
-
-```json
-{
-  "command": "view",
-  "path": "/path/to/file.txt"
 }
 ```
 
@@ -246,11 +317,16 @@ go get -u
 3. 启动开发服务器：`go run main.go`
 4. 构建可执行文件：`go build`
 
+### 添加新工具
+
+1. 在 `internal/ai_agent/tools/` 目录下创建新工具文件
+2. 实现 `ToEinoTool()` 方法转换为 Eino 工具接口
+3. 实现 `Invoke()` 方法处理工具调用逻辑
+4. 在 `tools_node.go` 的 `GetTools()` 函数中注册新工具
 
 ## 许可证
 
 Apache License 2.0
-
 
 ---
 

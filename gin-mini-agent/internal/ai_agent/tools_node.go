@@ -24,30 +24,112 @@ import (
 	tools "gin-mini-agent/internal/ai_agent/tools"
 )
 
+// GetTools 获取所有可用工具列表
+//
+// 该函数返回 Agent 可以调用的工具列表。
+// 工具是 Agent 与外部世界交互的能力扩展，
+// 允许 Agent 执行搜索、文件操作、浏览器自动化等任务。
+//
+// 参数:
+//   - ctx: 上下文，用于控制超时和取消
+//
+// 返回:
+//   - []tool.BaseTool: 工具列表
+//   - error: 获取过程中的错误
+//
+// 当前可用工具:
+//   - open: 打开文件或 URL，读取内容
+//   - fileeditor: 文件编辑工具，支持读写文件
+//   - browseruse: 浏览器自动化工具，支持网页交互
+//
+// 工具调用流程:
+//  1. Agent 分析用户问题，决定是否需要调用工具
+//  2. Agent 选择合适的工具并生成调用参数
+//  3. 工具执行并返回结果
+//  4. Agent 根据结果继续推理或生成最终答案
+//
+// 使用示例:
+//
+//	tools, err := GetTools(ctx)
+//	for _, t := range tools {
+//	    info, _ := t.Info(ctx)
+//	    fmt.Println(info.Name, info.Desc)
+//	}
 func GetTools(ctx context.Context) ([]tool.BaseTool, error) {
-	// 创建打开文件工具（自定义）
-	toolOpen, err := NewOpenFileTool(ctx)
+	// 创建打开文件工具（自定义实现）
+	// 功能: 打开本地文件或 URL，读取内容
+	// 用途: 当用户需要查看文件内容或访问网页时使用
+	toolOpen, err := tools.NewOpenFileTool(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	// 创建文件编辑器工具（官方库）
+
+	// 创建文件编辑器工具（自定义实现）
+	// 功能: 创建、读取、修改文件
+	// 用途: 当用户需要编辑代码或文本文件时使用
 	toolFileEditor, err := tools.NewFileEditorTool(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	// 创建浏览器自动化工具（官方库）
+
+	// 创建 Python 执行器工具（自定义实现）
+	// 功能: 执行 Python 代码
+	// 用途: 当用户需要执行 Python 脚本时使用
+	toolPyExecutor, err := tools.NewPyExecutorTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建 HTTP GET 请求工具（官方库实现）
+	// 功能: 发送 HTTP GET 请求
+	// 用途: 当用户需要获取网页内容或 API 数据时使用
+	toolHTTPGet, err := tools.NewHTTPGetTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建 HTTP POST 请求工具（官方库实现）
+	// 功能: 发送 HTTP POST 请求
+	// 用途: 当用户需要提交数据或创建资源时使用
+	toolHTTPPost, err := tools.NewHTTPPostTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建 HTTP PUT 请求工具（官方库实现）
+	// 功能: 发送 HTTP PUT 请求
+	// 用途: 当用户需要更新资源时使用
+	toolHTTPPut, err := tools.NewHTTPPutTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建 HTTP DELETE 请求工具（官方库实现）
+	// 功能: 发送 HTTP DELETE 请求
+	// 用途: 当用户需要删除资源时使用
+	toolHTTPDelete, err := tools.NewHTTPDeleteTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// 创建浏览器自动化工具（自定义实现）
+	// 功能: 控制浏览器进行网页交互
+	// 用途: 当用户需要访问网页、填写表单、截图时使用
 	toolBrowserUse, err := tools.NewBrowserUseTool(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
+	// 返回工具列表
+	// Agent 会根据用户问题自动选择合适的工具
 	return []tool.BaseTool{
 		toolOpen,
 		toolFileEditor,
+		toolPyExecutor,
+		toolHTTPGet,
+		toolHTTPPost,
+		toolHTTPPut,
+		toolHTTPDelete,
 		toolBrowserUse,
 	}, nil
-}
-
-func NewOpenFileTool(ctx context.Context) (tn tool.BaseTool, err error) {
-	return tools.NewOpenFileTool(ctx, nil)
 }

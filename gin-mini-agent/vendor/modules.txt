@@ -160,7 +160,7 @@ github.com/cloudwego/base64x/internal/native
 github.com/cloudwego/base64x/internal/native/avx2
 github.com/cloudwego/base64x/internal/native/sse
 github.com/cloudwego/base64x/internal/rt
-# github.com/cloudwego/eino v0.8.0
+# github.com/cloudwego/eino v0.8.1
 ## explicit; go 1.18
 github.com/cloudwego/eino/adk
 github.com/cloudwego/eino/adk/internal
@@ -188,40 +188,43 @@ github.com/cloudwego/eino/internal/safe
 github.com/cloudwego/eino/internal/serialization
 github.com/cloudwego/eino/schema
 github.com/cloudwego/eino/utils/callbacks
-# github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260310075812-cb9c90b6a56a
+# github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/document/loader/file
-# github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260310134446-560454126ae1
+# github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown
-# github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260310134446-560454126ae1
+# github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/embedding/openai
-# github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260310134446-560454126ae1
+# github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.24.6
 github.com/cloudwego/eino-ext/components/indexer/milvus2
-# github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260310134446-560454126ae1
+# github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/indexer/redis
-# github.com/cloudwego/eino-ext/components/model/openai v0.1.8
+# github.com/cloudwego/eino-ext/components/model/openai v0.1.9
 ## explicit; go 1.18
 github.com/cloudwego/eino-ext/components/model/openai
 # github.com/cloudwego/eino-ext/components/retriever/milvus2 v0.1.0
 ## explicit; go 1.24.6
 github.com/cloudwego/eino-ext/components/retriever/milvus2
-# github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260310075812-cb9c90b6a56a
+# github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/retriever/redis
-# github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260310075812-cb9c90b6a56a
+# github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.24
 github.com/cloudwego/eino-ext/components/tool/browseruse
-# github.com/cloudwego/eino-ext/components/tool/commandline v0.0.0-20260310075812-cb9c90b6a56a
-## explicit; go 1.23.0
-github.com/cloudwego/eino-ext/components/tool/commandline
-# github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260310075812-cb9c90b6a56a
+# github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260313050455-88e279b3b32f
 ## explicit; go 1.23.0
 github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2
-# github.com/cloudwego/eino-ext/libs/acl/openai v0.1.13
+# github.com/cloudwego/eino-ext/components/tool/httprequest v0.0.0-20260313050455-88e279b3b32f
+## explicit; go 1.23.0
+github.com/cloudwego/eino-ext/components/tool/httprequest/delete
+github.com/cloudwego/eino-ext/components/tool/httprequest/get
+github.com/cloudwego/eino-ext/components/tool/httprequest/post
+github.com/cloudwego/eino-ext/components/tool/httprequest/put
+# github.com/cloudwego/eino-ext/libs/acl/openai v0.1.14
 ## explicit; go 1.18
 github.com/cloudwego/eino-ext/libs/acl/openai
 # github.com/cockroachdb/errors v1.12.0
@@ -248,7 +251,7 @@ github.com/cockroachdb/errors/withstack
 # github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506
 ## explicit; go 1.18
 github.com/cockroachdb/logtags
-# github.com/cockroachdb/redact v1.1.7
+# github.com/cockroachdb/redact v1.1.8
 ## explicit; go 1.19
 github.com/cockroachdb/redact
 github.com/cockroachdb/redact/builder
@@ -394,7 +397,7 @@ github.com/gobwas/pool/pbytes
 ## explicit; go 1.16
 github.com/gobwas/ws
 github.com/gobwas/ws/wsutil
-# github.com/goccy/go-json v0.10.5
+# github.com/goccy/go-json v0.10.6
 ## explicit; go 1.19
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
@@ -697,7 +700,7 @@ github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/mem
 github.com/shirou/gopsutil/v3/net
 github.com/shirou/gopsutil/v3/process
-# github.com/shoenig/go-m1cpu v0.1.7
+# github.com/shoenig/go-m1cpu v0.2.0
 ## explicit; go 1.20
 github.com/shoenig/go-m1cpu
 # github.com/sirupsen/logrus v1.9.4
@@ -1021,8 +1024,8 @@ go.yaml.in/yaml/v3
 # golang.org/x/arch v0.25.0
 ## explicit; go 1.25.0
 golang.org/x/arch/x86/x86asm
-# golang.org/x/crypto v0.48.0
-## explicit; go 1.24.0
+# golang.org/x/crypto v0.49.0
+## explicit; go 1.25.0
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/chacha20
@@ -1031,11 +1034,11 @@ golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/sha3
-# golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
+# golang.org/x/exp v0.0.0-20260312153236-7ab1446f8b90
 ## explicit; go 1.25.0
 golang.org/x/exp/constraints
 golang.org/x/exp/slices
-# golang.org/x/net v0.51.0
+# golang.org/x/net v0.52.0
 ## explicit; go 1.25.0
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -1065,8 +1068,8 @@ golang.org/x/sys/execabs
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
-# golang.org/x/text v0.34.0
-## explicit; go 1.24.0
+# golang.org/x/text v0.35.0
+## explicit; go 1.25.0
 golang.org/x/text/cases
 golang.org/x/text/encoding
 golang.org/x/text/encoding/internal
@@ -1086,12 +1089,12 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.15.0
 ## explicit; go 1.25.0
 golang.org/x/time/rate
-# google.golang.org/genproto/googleapis/api v0.0.0-20260226221140-a57be14db171
+# google.golang.org/genproto/googleapis/api v0.0.0-20260311181403-84a4fc48630c
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20260226221140-a57be14db171
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20260311181403-84a4fc48630c
 ## explicit; go 1.25.0
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
