@@ -244,6 +244,18 @@ func LogCallback(config *LogCallbackConfig) callbacks.Handler {
 			"type", info.Type,
 			"name", info.Name)
 
+		// 监控工具调用，特别是 skill 工具
+		if info.Component == "tool" {
+			slog.InfoContext(ctx, "[callback] 工具调用开始",
+				"tool_name", info.Name,
+				"tool_type", info.Type)
+
+			// 检查是否是 skill 工具
+			if info.Name == "skill" {
+				slog.InfoContext(ctx, "[callback] 🎯 Skill 工具被调用！")
+			}
+		}
+
 		if config.Detail {
 			var b []byte
 			if config.Debug {
@@ -260,6 +272,11 @@ func LogCallback(config *LogCallbackConfig) callbacks.Handler {
 			"component", info.Component,
 			"type", info.Type,
 			"name", info.Name)
+
+		// 监控工具调用完成
+		if info.Component == "tool" && info.Name == "skill" {
+			slog.InfoContext(ctx, "[callback] 🎯 Skill 工具调用完成！")
+		}
 
 		if config.Detail {
 			var b []byte

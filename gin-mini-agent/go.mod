@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	github.com/cloudwego/eino v0.8.1
+	github.com/cloudwego/eino-ext/adk/backend/local v0.2.3
 	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260313050455-88e279b3b32f
 	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260313050455-88e279b3b32f
 	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260313050455-88e279b3b32f
@@ -42,6 +43,7 @@ require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect

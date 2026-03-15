@@ -42,6 +42,8 @@ package ai_agent
 import (
 	"context"
 
+	"github.com/cloudwego/eino/adk"
+	"github.com/cloudwego/eino/adk/middlewares/skill"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 )
@@ -69,8 +71,8 @@ var GlobalAgent compose.Runnable[*UserMessage, *schema.Message]
 //
 // 对话历史存储格式:
 //
-//	用户: {用户问题}
-//	助手: {AI回复}
+//	用户：{用户问题}
+//	助手：{AI 回复}
 //
 // 使用示例:
 //
@@ -88,6 +90,8 @@ var GlobalConversationManager *ConversationManager
 //
 // 参数:
 //   - ctx: 上下文，用于控制超时和取消
+//   - skillBackend: 可选的 Skill 后端，用于添加 skill 工具
+//   - skillMiddleware: 可选的 Skill 中间件，用于提取技能指令
 //
 // 返回:
 //   - r: 可运行的 Graph 实例
@@ -117,7 +121,7 @@ var GlobalConversationManager *ConversationManager
 // 执行模式:
 //   - WithNodeTriggerMode(compose.AllPredecessor): 所有前驱节点完成后才触发当前节点
 //   - 这意味着 ChatTemplate 需要等待 Retriever、ConversationRetriever 和 InputToHistory 全部完成
-func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema.Message], err error) {
+func BuildAiAgent(ctx context.Context, skillBackend skill.Backend, skillMiddleware adk.AgentMiddleware) (r compose.Runnable[*UserMessage, *schema.Message], err error) {
 	// 定义节点名称常量，便于维护和理解
 	const (
 		// InputToQuery 节点名称：将 UserMessage 转换为查询字符串
@@ -146,16 +150,21 @@ func BuildAiAgent(ctx context.Context) (r compose.Runnable[*UserMessage, *schema
 
 	// 添加 ChatTemplate 模板节点
 	// 功能: 根据系统提示词、知识库文档、对话历史和用户输入组装最终提示词
-	chatTemplateKeyOfChatTemplate, err := newChatTemplate(ctx)
+	// 如果提供了 Skill Middleware，提取技能指令并注入到系统提示词中
+	skillInstruction := ""
+	if skillMiddleware.AdditionalInstruction != "" {
+		skillInstruction = skillMiddleware.AdditionalInstruction
+	}
+	chatTemplateKeyOfChatTemplate, err := newChatTemplate(ctx, skillInstruction)
 	if err != nil {
 		return nil, err
 	}
 	_ = g.AddChatTemplateNode(ChatTemplate, chatTemplateKeyOfChatTemplate)
 
 	// 添加 ReactAgent Lambda 节点
-	// 功能: 执行 ReAct 推理循环，支持工具调用
+	// 功能：执行 ReAct 推理循环，支持工具调用
 	// ReactAgent 会根据提示词决定是否调用工具，直到生成最终答案
-	reactAgentKeyOfLambda, err := newReactAgent(ctx)
+	reactAgentKeyOfLambda, err := newReactAgent(ctx, skillMiddleware)
 	if err != nil {
 		return nil, err
 	}

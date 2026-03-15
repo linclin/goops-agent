@@ -34,6 +34,7 @@ import (
 //
 // 参数:
 //   - ctx: 上下文，用于控制超时和取消
+//   - middleware: 可选的中间件，用于增强 ChatModel 功能（如 Skill 中间件）
 //
 // 返回:
 //   - cm: 聊天模型实例，实现了 ToolCallingChatModel 接口
@@ -84,5 +85,6 @@ func newChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 	if err != nil {
 		return nil, err
 	}
+
 	return cm, nil
 }

@@ -171,7 +171,7 @@ func Logger() {
 
 	// 创建日志记录器
 	// 输出到控制台和文件
-	logger := slog.New(slog.NewJSONHandler(io.MultiWriter(os.Stdout, logWriter), &logOpts))
+	logger := slog.New(slog.NewTextHandler(io.MultiWriter(os.Stdout, logWriter), &logOpts))
 
 	// 设置为默认日志记录器
 	slog.SetDefault(logger)

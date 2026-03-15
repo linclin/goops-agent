@@ -19,6 +19,7 @@ package ai_agent
 import (
 	"context"
 
+	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/flow/agent/react"
 )
@@ -29,13 +30,14 @@ import (
 // 负责创建和配置 ReAct（Reasoning + Acting）推理代理。
 //
 // ReAct Agent 工作原理:
-//   1. 推理（Reasoning）: 分析用户问题，决定是否需要调用工具
-//   2. 行动（Acting）: 调用工具获取信息
-//   3. 观察（Observation）: 观察工具返回的结果
-//   4. 循环: 重复上述步骤，直到可以生成最终答案
+//  1. 推理（Reasoning）: 分析用户问题，决定是否需要调用工具
+//  2. 行动（Acting）: 调用工具获取信息
+//  3. 观察（Observation）: 观察工具返回的结果
+//  4. 循环：重复上述步骤，直到可以生成最终答案
 //
 // 参数:
 //   - ctx: 上下文，用于控制超时和取消
+//   - skillMiddleware: 可选的 Skill 中间件，用于提取 skill 工具
 //
 // 返回:
 //   - lba: Lambda 实例，支持同步调用和流式调用
@@ -55,7 +57,8 @@ import (
 //   - searxng: 搜索引擎
 //   - httprequest: HTTP 请求
 //   - commandline: 命令行执行
-func newReactAgent(ctx context.Context) (lba *compose.Lambda, err error) {
+//   - skill: 技能加载（如果提供了 skillMiddleware）
+func newReactAgent(ctx context.Context, skillMiddleware adk.AgentMiddleware) (lba *compose.Lambda, err error) {
 	// 创建 ReAct Agent 配置
 	config := &react.AgentConfig{
 		// MaxStep 最大推理步数
@@ -84,7 +87,7 @@ func newReactAgent(ctx context.Context) (lba *compose.Lambda, err error) {
 	// 获取可用工具列表
 	// 工具定义在 internal/ai_agent/tools 目录下
 	// 每个工具都实现了 tool.InvokableTool 接口
-	tools, err := GetTools(ctx)
+	tools, err := GetTools(ctx, skillMiddleware)
 	if err != nil {
 		return nil, err
 	}

@@ -18,6 +18,7 @@ package ai_agent
 
 import (
 	"context"
+	"gin-mini-agent/pkg/global"
 
 	"github.com/cloudwego/eino/components/prompt"
 	"github.com/cloudwego/eino/schema"
@@ -105,6 +106,7 @@ type ChatTemplateConfig struct {
 //
 // 参数:
 //   - ctx: 上下文，用于控制超时和取消
+//   - skillInstruction: 可选的技能指令，用于增强系统提示词
 //
 // 返回:
 //   - ctp: 聊天模板实例，用于渲染最终的提示词
@@ -122,14 +124,22 @@ type ChatTemplateConfig struct {
 //   - {content}: 由 inputToHistory 节点提供
 //   - {documents}: 由 Retriever 节点提供（知识库检索结果）
 //   - {conversation_history}: 由 ConversationRetriever 节点提供（向量数据库中的历史）
-func newChatTemplate(ctx context.Context) (ctp prompt.ChatTemplate, err error) {
+func newChatTemplate(ctx context.Context, skillInstruction string) (ctp prompt.ChatTemplate, err error) {
+	// 构建完整的系统提示词
+	// 如果提供了技能指令，将其添加到系统提示词的末尾
+	fullSystemPrompt := systemPrompt
+	if skillInstruction != "" {
+		fullSystemPrompt = systemPrompt + "\n\n" + skillInstruction
+		global.Log.Info("注入 Skill 指令到系统提示词", "instruction_length", len(skillInstruction))
+	}
+
 	// 创建模板配置
 	config := &ChatTemplateConfig{
 		// 使用 FString 格式，支持 {variable} 风格的占位符
 		FormatType: schema.FString,
 		Templates: []schema.MessagesTemplate{
 			// 系统消息：定义 AI 的角色和行为规范
-			schema.SystemMessage(systemPrompt),
+			schema.SystemMessage(fullSystemPrompt),
 			// 历史消息占位符：插入前端传入的对话历史
 			// 第二个参数 true 表示历史消息可选（可以为空）
 			schema.MessagesPlaceholder("history", true),

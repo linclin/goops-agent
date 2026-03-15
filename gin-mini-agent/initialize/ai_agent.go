@@ -44,11 +44,19 @@ func InitAiAgent() {
 	// 创建上下文
 	ctx := context.Background()
 
+	// 初始化 Skill 后端和中间件
+	// Skill 后端使 Agent 能够动态发现和使用预定义的技能
+	skillBackend, skillMiddleware, err := InitSkillMiddleware(ctx)
+	if err != nil {
+		panic("初始化 Skill 后端和中间件失败：" + err.Error())
+	}
+
 	// 构建 AI Agent
 	// BuildAiAgent 会创建完整的 Graph 工作流
-	agent, err := ai_agent.BuildAiAgent(ctx)
+	// 传入 skillBackend 和 skillMiddleware 以启用技能功能
+	agent, err := ai_agent.BuildAiAgent(ctx, skillBackend, skillMiddleware)
 	if err != nil {
-		panic("初始化 AI Agent 失败: " + err.Error())
+		panic("初始化 AI Agent 失败：" + err.Error())
 	}
 
 	// 设置全局变量
