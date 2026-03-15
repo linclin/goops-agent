@@ -26,8 +26,8 @@ goops-agent/
 | 工具名称 | 功能说明 | 实现方式 |
 |---------|---------|---------|
 | open | 打开文件或URL，读取内容 | 自定义实现 |
-| str_replace_editor | 文件编辑器，支持创建、查看、编辑文件 | 自定义实现 |
-| python_execute | 执行 Python 代码字符串 | 自定义实现 |
+| str_replace_editor | 文件编辑器，支持创建、查看、编辑文件 | 官方库 eino-ext  |
+| python_execute | 执行 Python 代码字符串 | 官方库 eino-ext  |
 | request_get | 发送 HTTP GET 请求 | 官方库 eino-ext |
 | request_post | 发送 HTTP POST 请求 | 官方库 eino-ext |
 | request_put | 发送 HTTP PUT 请求 | 官方库 eino-ext |
@@ -80,7 +80,7 @@ npm install
 npm run dev
 ```
 
-前端应用将在 `http://localhost:5173` 运行。
+前端应用将在 `http://localhost:3000` 运行。
 
 ### 后端启动
 
@@ -101,7 +101,7 @@ go run main.go
 
 ### 流式对话接口
 
-- **URL**: `/api/v1/agent/chat`
+- **URL**: `/api/v1/agent/chat/sse`
 - **方法**: `POST`
 - **Content-Type**: `application/json`
 - **请求体**:

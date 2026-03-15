@@ -19,6 +19,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime"
 
@@ -167,38 +168,39 @@ func (b *BrowserUseToolImpl) ToEinoTool() (tool.InvokableTool, error) {
 //   - 截图: 对网页进行截图
 //   - 执行脚本: 在页面中执行 JavaScript
 func (b *BrowserUseToolImpl) Invoke(ctx context.Context, req browseruse.Param) (browseruse.ToolResult, error) {
-	// 查找 Chrome 浏览器路径
+	slog.InfoContext(ctx, "[browser_use] 工具调用开始", "url", req.URL)
+
 	chromePath := findChromePath()
 	if chromePath == "" {
-		// 未找到 Chrome，返回友好错误信息而不是抛出异常
+		slog.ErrorContext(ctx, "[browser_use] 未找到 Chrome 浏览器")
 		return browseruse.ToolResult{
 			Error: "浏览器自动化工具调用失败: 未找到 Chrome 浏览器。请安装 Google Chrome 或 Microsoft Edge 浏览器后重试。",
 		}, nil
 	}
 
-	// 创建浏览器工具实例
+	slog.DebugContext(ctx, "[browser_use] 找到 Chrome 浏览器", "path", chromePath)
+
 	but, err := browseruse.NewBrowserUseTool(ctx, &browseruse.Config{
 		Headless:           true,
 		ChromeInstancePath: chromePath,
 	})
 	if err != nil {
-		// 初始化失败，返回友好错误信息
+		slog.ErrorContext(ctx, "[browser_use] 初始化失败", "error", err)
 		return browseruse.ToolResult{
 			Error: fmt.Sprintf("浏览器自动化工具初始化失败: %v。请确保 Chrome 浏览器已正确安装。", err),
 		}, nil
 	}
 
-	// 执行浏览器操作
 	result, err := but.Execute(&req)
 	if err != nil {
-		// 执行失败，返回友好错误信息
+		slog.ErrorContext(ctx, "[browser_use] 执行失败", "error", err)
 		return browseruse.ToolResult{
 			Error: fmt.Sprintf("浏览器自动化工具执行失败: %v", err),
 		}, nil
 	}
 
-	// 清理浏览器资源
 	but.Cleanup()
 
+	slog.InfoContext(ctx, "[browser_use] 执行成功", "url", req.URL)
 	return *result, nil
 }

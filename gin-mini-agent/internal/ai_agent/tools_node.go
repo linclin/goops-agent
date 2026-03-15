@@ -120,6 +120,14 @@ func GetTools(ctx context.Context) ([]tool.BaseTool, error) {
 		return nil, err
 	}
 
+	// 创建命令执行工具（自定义实现）
+	// 功能: 在终端中执行命令
+	// 用途: 当用户需要执行系统命令、脚本时使用
+	toolCommand, err := tools.NewCommandTool(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+
 	// 返回工具列表
 	// Agent 会根据用户问题自动选择合适的工具
 	return []tool.BaseTool{
@@ -131,5 +139,6 @@ func GetTools(ctx context.Context) ([]tool.BaseTool, error) {
 		toolHTTPPut,
 		toolHTTPDelete,
 		toolBrowserUse,
+		toolCommand,
 	}, nil
 }

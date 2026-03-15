@@ -298,7 +298,7 @@ const Independent: React.FC = () => {
     try {
       let assistantContent = '';
 
-      XRequest('http://127.0.0.1:8080/api/v1/agent/chat', {
+      XRequest('http://127.0.0.1:8080/api/v1/agent/chat/sse', {
         params: {
           id: activeConversationKey,
           query: content,

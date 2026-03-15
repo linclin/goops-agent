@@ -12,16 +12,22 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 
+	"github.com/cloudwego/eino/callbacks"
+	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 	"github.com/gin-gonic/gin"
 
 	"gin-mini-agent/internal/ai_agent"
 	"gin-mini-agent/models"
 )
+
+var CallbacksHandler callbacks.Handler
 
 // ChatRequest 聊天请求参数
 //
@@ -136,9 +142,14 @@ func ChatSse(c *gin.Context) {
 		Query:   req.Query,
 		History: req.History,
 	}
-
+	cbLogConfig := &LogCallbackConfig{
+		Detail: true,
+		Debug:  true,
+	}
+	// this is for invoke option of WithCallback
+	CallbacksHandler = LogCallback(cbLogConfig)
 	// 调用 AI Agent 的 Stream 方法获取流式响应
-	streamReader, err := runnable.Stream(c.Request.Context(), userMessage)
+	streamReader, err := runnable.Stream(c.Request.Context(), userMessage, compose.WithCallbacks(CallbacksHandler))
 	if err != nil {
 		models.FailWithMessage("调用 AI Agent 失败: "+err.Error(), c)
 		return
@@ -213,4 +224,61 @@ func ChatSse(c *gin.Context) {
 
 		return false // 结束流
 	})
+}
+
+type LogCallbackConfig struct {
+	Detail bool
+	Debug  bool
+}
+
+func LogCallback(config *LogCallbackConfig) callbacks.Handler {
+	if config == nil {
+		config = &LogCallbackConfig{
+			Detail: true,
+		}
+	}
+	builder := callbacks.NewHandlerBuilder()
+	builder.OnStartFn(func(ctx context.Context, info *callbacks.RunInfo, input callbacks.CallbackInput) context.Context {
+		slog.InfoContext(ctx, "[callback] 节点开始执行",
+			"component", info.Component,
+			"type", info.Type,
+			"name", info.Name)
+
+		if config.Detail {
+			var b []byte
+			if config.Debug {
+				b, _ = json.MarshalIndent(input, "", "  ")
+			} else {
+				b, _ = json.Marshal(input)
+			}
+			slog.DebugContext(ctx, "[callback] 输入数据", "input", string(b))
+		}
+		return ctx
+	})
+	builder.OnEndFn(func(ctx context.Context, info *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
+		slog.InfoContext(ctx, "[callback] 节点执行完成",
+			"component", info.Component,
+			"type", info.Type,
+			"name", info.Name)
+
+		if config.Detail {
+			var b []byte
+			if config.Debug {
+				b, _ = json.MarshalIndent(output, "", "  ")
+			} else {
+				b, _ = json.Marshal(output)
+			}
+			slog.DebugContext(ctx, "[callback] 输出数据", "output", string(b))
+		}
+		return ctx
+	})
+	builder.OnErrorFn(func(ctx context.Context, info *callbacks.RunInfo, err error) context.Context {
+		slog.ErrorContext(ctx, "[callback] 节点执行错误",
+			"component", info.Component,
+			"type", info.Type,
+			"name", info.Name,
+			"error", err)
+		return ctx
+	})
+	return builder.Build()
 }

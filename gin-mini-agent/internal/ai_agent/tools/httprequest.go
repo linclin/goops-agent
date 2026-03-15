@@ -18,6 +18,7 @@ package tools
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -69,6 +70,8 @@ func defaultHTTPRequestToolConfig() *HTTPRequestToolConfig {
 //   - tool.InvokableTool: 工具实例
 //   - error: 创建过程中的错误
 func NewHTTPGetTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.InvokableTool, error) {
+	slog.DebugContext(ctx, "[request_get] 创建 HTTP GET 请求工具")
+
 	if config == nil {
 		config = defaultHTTPRequestToolConfig()
 	}
@@ -95,7 +98,14 @@ func NewHTTPGetTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.In
 		HttpClient: config.HttpClient,
 	}
 
-	return httprequest_get.NewTool(ctx, getConfig)
+	t, err := httprequest_get.NewTool(ctx, getConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "[request_get] 创建工具失败", "error", err)
+		return nil, err
+	}
+
+	slog.InfoContext(ctx, "[request_get] 工具创建成功")
+	return t, nil
 }
 
 // NewHTTPPostTool 创建 HTTP POST 请求工具
@@ -111,6 +121,8 @@ func NewHTTPGetTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.In
 //   - tool.InvokableTool: 工具实例
 //   - error: 创建过程中的错误
 func NewHTTPPostTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.InvokableTool, error) {
+	slog.DebugContext(ctx, "[request_post] 创建 HTTP POST 请求工具")
+
 	if config == nil {
 		config = defaultHTTPRequestToolConfig()
 	}
@@ -140,7 +152,14 @@ func NewHTTPPostTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.I
 		HttpClient: config.HttpClient,
 	}
 
-	return httprequest_post.NewTool(ctx, postConfig)
+	t, err := httprequest_post.NewTool(ctx, postConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "[request_post] 创建工具失败", "error", err)
+		return nil, err
+	}
+
+	slog.InfoContext(ctx, "[request_post] 工具创建成功")
+	return t, nil
 }
 
 // NewHTTPPutTool 创建 HTTP PUT 请求工具
@@ -156,6 +175,8 @@ func NewHTTPPostTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.I
 //   - tool.InvokableTool: 工具实例
 //   - error: 创建过程中的错误
 func NewHTTPPutTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.InvokableTool, error) {
+	slog.DebugContext(ctx, "[request_put] 创建 HTTP PUT 请求工具")
+
 	if config == nil {
 		config = defaultHTTPRequestToolConfig()
 	}
@@ -185,7 +206,14 @@ func NewHTTPPutTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.In
 		HttpClient: config.HttpClient,
 	}
 
-	return httprequest_put.NewTool(ctx, putConfig)
+	t, err := httprequest_put.NewTool(ctx, putConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "[request_put] 创建工具失败", "error", err)
+		return nil, err
+	}
+
+	slog.InfoContext(ctx, "[request_put] 工具创建成功")
+	return t, nil
 }
 
 // NewHTTPDeleteTool 创建 HTTP DELETE 请求工具
@@ -201,6 +229,8 @@ func NewHTTPPutTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.In
 //   - tool.InvokableTool: 工具实例
 //   - error: 创建过程中的错误
 func NewHTTPDeleteTool(ctx context.Context, config *HTTPRequestToolConfig) (tool.InvokableTool, error) {
+	slog.DebugContext(ctx, "[request_delete] 创建 HTTP DELETE 请求工具")
+
 	if config == nil {
 		config = defaultHTTPRequestToolConfig()
 	}
@@ -227,5 +257,12 @@ func NewHTTPDeleteTool(ctx context.Context, config *HTTPRequestToolConfig) (tool
 		HttpClient: config.HttpClient,
 	}
 
-	return httprequest_delete.NewTool(ctx, deleteConfig)
+	t, err := httprequest_delete.NewTool(ctx, deleteConfig)
+	if err != nil {
+		slog.ErrorContext(ctx, "[request_delete] 创建工具失败", "error", err)
+		return nil, err
+	}
+
+	slog.InfoContext(ctx, "[request_delete] 工具创建成功")
+	return t, nil
 }

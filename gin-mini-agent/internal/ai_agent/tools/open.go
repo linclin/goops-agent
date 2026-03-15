@@ -35,6 +35,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"os"
 	"os/exec"
@@ -161,30 +162,31 @@ func (of *OpenFileToolImpl) ToEinoTool() (tool.InvokableTool, error) {
 //   - macOS: 使用 open 命令
 //   - Linux: 使用 xdg-open 命令
 func (of *OpenFileToolImpl) Invoke(ctx context.Context, req OpenReq) (res OpenRes, err error) {
-	// 验证 URI 不为空
+	slog.InfoContext(ctx, "[open] 工具调用开始", "uri", req.URI)
+
 	if req.URI == "" {
+		slog.WarnContext(ctx, "[open] URI 为空")
 		res.Message = "URI 不能为空"
 		return res, nil
 	}
 
-	// 如果是文件或目录，检查是否存在
 	if isFilePath(req.URI) {
-		// 移除 file:// 前缀
 		req.URI = strings.TrimPrefix(req.URI, "file:///")
-		// 检查文件是否存在
 		if _, err := os.Stat(req.URI); err != nil {
+			slog.ErrorContext(ctx, "[open] 文件不存在", "uri", req.URI, "error", err)
 			res.Message = fmt.Sprintf("文件不存在: %s", req.URI)
 			return res, nil
 		}
 	}
 
-	// 执行打开操作
 	err = openURI(req.URI)
 	if err != nil {
+		slog.ErrorContext(ctx, "[open] 打开失败", "uri", req.URI, "error", err)
 		res.Message = fmt.Sprintf("打开失败 %s: %s", req.URI, err.Error())
 		return res, nil
 	}
 
+	slog.InfoContext(ctx, "[open] 工具调用成功", "uri", req.URI)
 	res.Message = fmt.Sprintf("成功，已打开 %s", req.URI)
 	return res, nil
 }

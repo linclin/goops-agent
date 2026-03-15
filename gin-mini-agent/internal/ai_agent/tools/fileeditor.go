@@ -19,6 +19,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -120,34 +121,46 @@ func (f *FileEditorToolImpl) ToEinoTool() (tool.InvokableTool, error) {
 //   - FileEditorRes: 操作结果
 //   - error: 执行错误
 func (f *FileEditorToolImpl) Invoke(ctx context.Context, req FileEditorReq) (FileEditorRes, error) {
-	// 验证必要参数
+	slog.InfoContext(ctx, "[str_replace_editor] 工具调用开始", "command", req.Command, "path", req.Path)
+
 	if req.Path == "" {
+		slog.WarnContext(ctx, "[str_replace_editor] 文件路径为空")
 		return FileEditorRes{
 			Error: "文件路径不能为空",
 		}, nil
 	}
 
 	if req.Command == "" {
+		slog.WarnContext(ctx, "[str_replace_editor] 命令为空")
 		return FileEditorRes{
 			Error: "命令不能为空",
 		}, nil
 	}
 
-	// 根据命令类型执行操作
+	var result FileEditorRes
 	switch req.Command {
 	case "view":
-		return f.viewFile(req.Path, req.ViewRange)
+		result, _ = f.viewFile(ctx, req.Path, req.ViewRange)
 	case "create":
-		return f.createFile(req.Path, req.FileText)
+		result, _ = f.createFile(ctx, req.Path, req.FileText)
 	case "str_replace":
-		return f.strReplace(req.Path, req.OldStr, req.NewStr)
+		result, _ = f.strReplace(ctx, req.Path, req.OldStr, req.NewStr)
 	case "insert":
-		return f.insertContent(req.Path, req.InsertLine, req.NewStr)
+		result, _ = f.insertContent(ctx, req.Path, req.InsertLine, req.NewStr)
 	default:
+		slog.WarnContext(ctx, "[str_replace_editor] 未知命令", "command", req.Command)
 		return FileEditorRes{
 			Error: fmt.Sprintf("未知命令: %s。支持的命令: view, create, str_replace, insert", req.Command),
 		}, nil
 	}
+
+	if result.Error != "" {
+		slog.ErrorContext(ctx, "[str_replace_editor] 操作失败", "command", req.Command, "path", req.Path, "error", result.Error)
+	} else {
+		slog.InfoContext(ctx, "[str_replace_editor] 操作成功", "command", req.Command, "path", req.Path)
+	}
+
+	return result, nil
 }
 
 // viewFile 查看文件内容
@@ -160,15 +173,15 @@ func (f *FileEditorToolImpl) Invoke(ctx context.Context, req FileEditorReq) (Fil
 //
 // 返回:
 //   - FileEditorRes: 操作结果
-func (f *FileEditorToolImpl) viewFile(path string, viewRange []int) (FileEditorRes, error) {
-	// 检查文件是否存在
+func (f *FileEditorToolImpl) viewFile(ctx context.Context, path string, viewRange []int) (FileEditorRes, error) {
+	slog.DebugContext(ctx, "[str_replace_editor] 查看文件", "path", path, "viewRange", viewRange)
+
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return FileEditorRes{
 			Error: fmt.Sprintf("文件不存在: %s", path),
 		}, nil
 	}
 
-	// 读取文件内容
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return FileEditorRes{
@@ -176,7 +189,6 @@ func (f *FileEditorToolImpl) viewFile(path string, viewRange []int) (FileEditorR
 		}, nil
 	}
 
-	// 如果指定了行范围，截取对应行
 	if len(viewRange) == 2 {
 		lines := strings.Split(string(content), "\n")
 		start, end := viewRange[0], viewRange[1]
@@ -206,21 +218,21 @@ func (f *FileEditorToolImpl) viewFile(path string, viewRange []int) (FileEditorR
 //
 // 返回:
 //   - FileEditorRes: 操作结果
-func (f *FileEditorToolImpl) createFile(path string, content *string) (FileEditorRes, error) {
+func (f *FileEditorToolImpl) createFile(ctx context.Context, path string, content *string) (FileEditorRes, error) {
+	slog.DebugContext(ctx, "[str_replace_editor] 创建文件", "path", path)
+
 	if content == nil || *content == "" {
 		return FileEditorRes{
 			Error: "文件内容不能为空",
 		}, nil
 	}
 
-	// 检查文件是否已存在
 	if _, err := os.Stat(path); err == nil {
 		return FileEditorRes{
 			Error: fmt.Sprintf("文件已存在: %s", path),
 		}, nil
 	}
 
-	// 确保目录存在
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return FileEditorRes{
@@ -228,7 +240,6 @@ func (f *FileEditorToolImpl) createFile(path string, content *string) (FileEdito
 		}, nil
 	}
 
-	// 写入文件
 	if err := os.WriteFile(path, []byte(*content), 0644); err != nil {
 		return FileEditorRes{
 			Error: fmt.Sprintf("写入文件失败: %v", err),
@@ -251,14 +262,15 @@ func (f *FileEditorToolImpl) createFile(path string, content *string) (FileEdito
 //
 // 返回:
 //   - FileEditorRes: 操作结果
-func (f *FileEditorToolImpl) strReplace(path string, oldStr, newStr *string) (FileEditorRes, error) {
+func (f *FileEditorToolImpl) strReplace(ctx context.Context, path string, oldStr, newStr *string) (FileEditorRes, error) {
+	slog.DebugContext(ctx, "[str_replace_editor] 字符串替换", "path", path)
+
 	if oldStr == nil || *oldStr == "" {
 		return FileEditorRes{
 			Error: "要替换的字符串不能为空",
 		}, nil
 	}
 
-	// 读取文件内容
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return FileEditorRes{
@@ -266,7 +278,6 @@ func (f *FileEditorToolImpl) strReplace(path string, oldStr, newStr *string) (Fi
 		}, nil
 	}
 
-	// 检查旧字符串是否存在
 	contentStr := string(content)
 	if !strings.Contains(contentStr, *oldStr) {
 		return FileEditorRes{
@@ -274,7 +285,6 @@ func (f *FileEditorToolImpl) strReplace(path string, oldStr, newStr *string) (Fi
 		}, nil
 	}
 
-	// 检查是否唯一
 	count := strings.Count(contentStr, *oldStr)
 	if count > 1 {
 		return FileEditorRes{
@@ -282,10 +292,8 @@ func (f *FileEditorToolImpl) strReplace(path string, oldStr, newStr *string) (Fi
 		}, nil
 	}
 
-	// 执行替换
 	newContent := strings.Replace(contentStr, *oldStr, *newStr, 1)
 
-	// 写入文件
 	if err := os.WriteFile(path, []byte(newContent), 0644); err != nil {
 		return FileEditorRes{
 			Error: fmt.Sprintf("写入文件失败: %v", err),
@@ -308,7 +316,9 @@ func (f *FileEditorToolImpl) strReplace(path string, oldStr, newStr *string) (Fi
 //
 // 返回:
 //   - FileEditorRes: 操作结果
-func (f *FileEditorToolImpl) insertContent(path string, insertLine *int, newStr *string) (FileEditorRes, error) {
+func (f *FileEditorToolImpl) insertContent(ctx context.Context, path string, insertLine *int, newStr *string) (FileEditorRes, error) {
+	slog.DebugContext(ctx, "[str_replace_editor] 插入内容", "path", path, "insertLine", insertLine)
+
 	if insertLine == nil {
 		return FileEditorRes{
 			Error: "插入行号不能为空",
@@ -321,7 +331,6 @@ func (f *FileEditorToolImpl) insertContent(path string, insertLine *int, newStr 
 		}, nil
 	}
 
-	// 读取文件内容
 	content, err := os.ReadFile(path)
 	if err != nil {
 		return FileEditorRes{
@@ -329,17 +338,14 @@ func (f *FileEditorToolImpl) insertContent(path string, insertLine *int, newStr 
 		}, nil
 	}
 
-	// 按行分割
 	lines := strings.Split(string(content), "\n")
 
-	// 检查行号是否有效
 	if *insertLine < 0 || *insertLine > len(lines) {
 		return FileEditorRes{
 			Error: fmt.Sprintf("行号超出范围: %d (文件共 %d 行)", *insertLine, len(lines)),
 		}, nil
 	}
 
-	// 插入内容
 	insertIdx := *insertLine
 	if insertIdx < len(lines) {
 		lines = append(lines[:insertIdx], append([]string{*newStr}, lines[insertIdx:]...)...)
@@ -347,7 +353,6 @@ func (f *FileEditorToolImpl) insertContent(path string, insertLine *int, newStr 
 		lines = append(lines, *newStr)
 	}
 
-	// 写入文件
 	newContent := strings.Join(lines, "\n")
 	if err := os.WriteFile(path, []byte(newContent), 0644); err != nil {
 		return FileEditorRes{

@@ -19,6 +19,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -131,43 +132,45 @@ func (p *PyExecutorToolImpl) ToEinoTool() (tool.InvokableTool, error) {
 //  4. 收集输出
 //  5. 清理临时文件
 func (p *PyExecutorToolImpl) Invoke(ctx context.Context, req PyExecutorReq) (PyExecutorRes, error) {
-	// 验证代码不为空
+	slog.InfoContext(ctx, "[python_execute] 工具调用开始", "code_length", len(req.Code))
+
 	if req.Code == "" {
+		slog.WarnContext(ctx, "[python_execute] 代码为空")
 		return PyExecutorRes{
 			Error: "Python 代码不能为空",
 		}, nil
 	}
 
-	// 检查 Python 解释器是否可用
 	if !p.checkPythonAvailable() {
+		slog.ErrorContext(ctx, "[python_execute] Python 解释器不可用")
 		return PyExecutorRes{
 			Error: "Python 解释器不可用。请确保已安装 Python 并添加到系统 PATH 环境变量中。",
 		}, nil
 	}
 
-	// 创建临时文件
 	tmpFile, err := os.CreateTemp("", "python_*.py")
 	if err != nil {
+		slog.ErrorContext(ctx, "[python_execute] 创建临时文件失败", "error", err)
 		return PyExecutorRes{
 			Error: fmt.Sprintf("创建临时文件失败: %v", err),
 		}, nil
 	}
 	tmpPath := tmpFile.Name()
 
-	// 确保清理临时文件
 	defer os.Remove(tmpPath)
 
-	// 写入代码
 	_, err = tmpFile.WriteString(req.Code)
 	if err != nil {
 		tmpFile.Close()
+		slog.ErrorContext(ctx, "[python_execute] 写入代码失败", "error", err)
 		return PyExecutorRes{
 			Error: fmt.Sprintf("写入代码失败: %v", err),
 		}, nil
 	}
 	tmpFile.Close()
 
-	// 执行 Python 代码
+	slog.DebugContext(ctx, "[python_execute] 开始执行Python代码", "tmp_file", tmpPath)
+
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.CommandContext(ctx, p.config.Command, tmpPath)
@@ -175,23 +178,23 @@ func (p *PyExecutorToolImpl) Invoke(ctx context.Context, req PyExecutorReq) (PyE
 		cmd = exec.CommandContext(ctx, p.config.Command, tmpPath)
 	}
 
-	// 捕获输出
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		// 执行失败，返回错误输出
+		slog.ErrorContext(ctx, "[python_execute] 代码执行失败", "error", err, "output", string(output))
 		return PyExecutorRes{
 			Error: fmt.Sprintf("Python 代码执行失败:\n%s", string(output)),
 		}, nil
 	}
 
-	// 返回执行结果
 	result := strings.TrimSpace(string(output))
 	if result == "" {
+		slog.InfoContext(ctx, "[python_execute] 执行成功，无输出")
 		return PyExecutorRes{
 			Output: "代码执行成功，但没有输出。请使用 print() 语句输出结果。",
 		}, nil
 	}
 
+	slog.InfoContext(ctx, "[python_execute] 执行成功", "output_length", len(result))
 	return PyExecutorRes{
 		Output: result,
 	}, nil

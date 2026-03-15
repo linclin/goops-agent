@@ -12,6 +12,7 @@
 package agent
 
 import (
+	"github.com/cloudwego/eino/compose"
 	"github.com/gin-gonic/gin"
 
 	"gin-mini-agent/internal/ai_agent"
@@ -71,9 +72,14 @@ func ChatSync(c *gin.Context) {
 		Query:   req.Query,
 		History: req.History,
 	}
-
+	cbLogConfig := &LogCallbackConfig{
+		Detail: true,
+		Debug:  true,
+	}
+	// this is for invoke option of WithCallback
+	CallbacksHandler = LogCallback(cbLogConfig)
 	// 调用 AI Agent 的 Invoke 方法获取完整响应
-	resp, err := runnable.Invoke(c.Request.Context(), userMessage)
+	resp, err := runnable.Invoke(c.Request.Context(), userMessage, compose.WithCallbacks(CallbacksHandler))
 	if err != nil {
 		models.FailWithMessage("调用 AI Agent 失败: "+err.Error(), c)
 		return
