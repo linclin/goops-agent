@@ -60,10 +60,6 @@ func newChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 	// 从配置文件读取聊天模型配置
 	config := &openai.ChatModelConfig{
 		// BaseURL API 基础地址
-		// 示例:
-		// - OpenAI: https://api.openai.com/v1
-		// - Azure: https://your-resource.openai.azure.com
-		// - 国内代理: https://api.your-proxy.com/v1
 		BaseURL: global.Conf.AiModel.ChatModel.BaseURL,
 
 		// APIKey API 访问密钥
@@ -72,10 +68,6 @@ func newChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 
 		// Model 模型名称
 		// 指定使用哪个模型进行推理
-		// 常用模型:
-		// - gpt-4: 最强大的模型
-		// - gpt-3.5-turbo: 性价比高
-		// - claude-3: Anthropic 的模型
 		Model: global.Conf.AiModel.ChatModel.Model,
 	}
 

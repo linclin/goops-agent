@@ -132,6 +132,15 @@ func GetTools(ctx context.Context, skillMiddleware adk.AgentMiddleware) ([]tool.
 		return nil, err
 	}
 
+	// 创建 kubectl 工具（基于 client-go SDK 实现）
+	// 功能: 操作 Kubernetes 集群，支持 get、describe、create、delete、apply 等操作
+	// 用途: 当用户需要管理 Kubernetes 集群时使用
+	toolKubectl, err := tools.NewKubectlTool(ctx, nil)
+	if err != nil {
+		global.Log.Warn("创建 kubectl 工具失败，可能是因为未配置 kubeconfig", "error", err)
+		// 继续执行，不影响其他工具
+	}
+
 	// 构建工具列表
 	toolList := []tool.BaseTool{
 		toolOpen,
@@ -143,6 +152,12 @@ func GetTools(ctx context.Context, skillMiddleware adk.AgentMiddleware) ([]tool.
 		toolHTTPDelete,
 		toolBrowserUse,
 		toolCommand,
+	}
+
+	// 添加 kubectl 工具（如果创建成功）
+	if toolKubectl != nil {
+		toolList = append(toolList, toolKubectl)
+		global.Log.Info("kubectl 工具加载成功")
 	}
 
 	// 加载 MCP 工具

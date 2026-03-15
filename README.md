@@ -40,6 +40,7 @@ goops-agent/
 | mcp_filesystem | MCP 文件系统工具，读写项目目录文件 | MCP 官方服务器 |
 | mcp_fetch | MCP Fetch 工具，获取网页内容 | MCP 官方服务器 |
 | mcp_memory | MCP Memory 工具，存储和检索记忆 | MCP 官方服务器 |
+| kubectl | Kubernetes 多集群管理工具，支持 get、describe、create、delete、apply 等操作 | 基于 client-go SDK 实现 |
 
 ### MCP 工具说明
 
@@ -58,10 +59,39 @@ MCP (Model Context Protocol) 是由 Anthropic 推出的标准协议，用于 LLM
 - 需要安装 Python 和 uvx（用于 fetch 工具）
 - 如果环境不满足，MCP 工具会自动跳过，不影响其他工具使用
 
+### kubectl 工具说明
+
+**功能：**
+- 基于 client-go SDK 实现的 Kubernetes 集群管理工具
+- 支持 get、describe、create、delete、apply 等核心 kubectl 命令
+- 支持多集群管理，自动从 ~/.kube/ 目录加载集群配置
+- 自动从 kubeconfig 文件或集群内服务账号获取集群配置
+
+**支持的命令：**
+
+| 命令 | 功能 | 示例 |
+|------|------|------|
+| get | 获取资源信息 | `kubectl get pods` |
+| describe | 获取资源详细信息 | `kubectl describe pod my-pod` |
+| create | 创建资源 | 提供 YAML/JSON 内容创建资源 |
+| delete | 删除资源 | `kubectl delete pod my-pod` |
+| apply | 创建或更新资源 | 提供 YAML/JSON 内容应用配置 |
+
+**多集群支持：**
+- **配置方式：** 在 ~/.kube/ 目录下创建以集群名称命名的 kubeconfig 文件（如 ST-XXX-XX）
+- **使用方式：** 在工具调用时通过 `cluster` 参数指定集群名称 
+
+**环境要求：**
+- 需要在 ~/.kube/ 目录下配置 kubeconfig 文件（以集群名称命名）
+- 或者在 Kubernetes 集群内运行（使用服务账号）
+- 如果未配置 kubeconfig，kubectl 工具会自动跳过，不影响其他工具使用
+
 ### Skills 技能列表
 
 | 技能名称 | 版本 | 描述 | 用途 |
 |---------|------|------|------|
+| self-improving-agent-3.0.1 | 3.0.1 | 自我提升技能，支持系统自动学习、知识库更新、错误处理和持续优化 | 支持系统自我学习和知识库更新 |
+| ssh-essentials-1.0.0 | 1.0.0 | 安全远程访问、密钥管理、隧道和文件传输的基本 SSH 命令 | 提供 SSH 远程访问和文件传输功能 |
 | ansible-1.0.0 | 1.0.0 | 避免常见的 Ansible 错误 — YAML 语法陷阱、变量优先级、幂等性失败和处理器问题 | 提供 Ansible 配置管理和自动化部署支持 |
 | clickhouse-1.0.1 | 1.0.1 | 查询、优化和管理 ClickHouse OLAP 数据库，包括模式设计、性能调优和数据导入模式 | 提供 ClickHouse 数据库管理和分析功能 |
 | database-operations-1.0.0 | 1.0.0 | 用于设计数据库架构、编写迁移脚本、优化 SQL 查询、解决 N+1 问题、创建索引、配置 PostgreSQL、设置 EF Core、实现缓存、分区表或任何数据库性能问题 | 提供全面的数据库设计、迁移和优化功能 |
@@ -74,9 +104,7 @@ MCP (Model Context Protocol) 是由 Anthropic 推出的标准协议，用于 LLM
 | mysql-1.0.1 | 1.0.1 | 编写正确的 MySQL 查询，包括适当的字符集、索引、事务和生产模式 | 提供 MySQL 数据库管理和查询优化功能 |
 | prometheus-1.1.0 | 1.1.0 | 查询 Prometheus 监控数据以检查服务器指标、资源使用和系统健康状态 | 提供 Prometheus 监控数据查询功能 |
 | redis-store-1.0.0 | 1.0.0 | 有效地使用 Redis 进行缓存、队列和数据结构，包括适当的过期和持久化 | 提供 Redis 缓存和数据结构管理功能 |
-| self-improving-agent-3.0.1 | 3.0.1 | 自我提升技能，支持系统自动学习、知识库更新、错误处理和持续优化 | 支持系统自我学习和知识库更新 |
 | sql-toolkit-1.0.0 | 1.0.0 | 查询、设计、迁移和优化 SQL数据库。用于 SQLite、PostgreSQL 或 MySQL — 架构设计、编写查询、创建迁移、索引、备份/恢复和调试慢查询 | 提供 SQL 数据库设计、查询和管理功能 |
-| ssh-essentials-1.0.0 | 1.0.0 | 安全远程访问、密钥管理、隧道和文件传输的基本 SSH 命令 | 提供 SSH 远程访问和文件传输功能 |
 | terraform-1.0.0 | 1.0.0 | 避免常见的 Terraform 错误 — 状态损坏、count vs for_each、生命周期陷阱和依赖顺序 | 提供 Terraform 基础设施即代码管理功能 |
 
 ## 技术栈
