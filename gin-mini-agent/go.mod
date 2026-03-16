@@ -3,18 +3,18 @@ module gin-mini-agent
 go 1.26
 
 require (
-	github.com/cloudwego/eino v0.8.1
+	github.com/cloudwego/eino v0.8.2
 	github.com/cloudwego/eino-ext/adk/backend/local v0.2.3
-	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/model/openai v0.1.9
+	github.com/cloudwego/eino-ext/components/document/loader/file v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/document/transformer/splitter/markdown v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/embedding/openai v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/indexer/milvus2 v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/indexer/redis v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/model/openai v0.1.10
 	github.com/cloudwego/eino-ext/components/retriever/milvus2 v0.1.0
-	github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260313050455-88e279b3b32f
-	github.com/cloudwego/eino-ext/components/tool/httprequest v0.0.0-20260313050455-88e279b3b32f
+	github.com/cloudwego/eino-ext/components/retriever/redis v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/tool/browseruse v0.0.0-20260316121515-014a29323bbe
+	github.com/cloudwego/eino-ext/components/tool/httprequest v0.0.0-20260316121515-014a29323bbe
 	github.com/cloudwego/eino-ext/components/tool/mcp v0.0.8
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-contrib/cors v1.7.6
@@ -34,13 +34,17 @@ require (
 	github.com/samber/slog-gin v1.21.0
 	github.com/spf13/cast v1.10.0
 	github.com/spf13/viper v1.21.0
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/gorm v1.31.1
 	k8s.io/apimachinery v0.35.2
 	k8s.io/client-go v0.35.2
 )
 
 require (
+	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/PuerkitoBio/goquery v1.11.0 // indirect
+	github.com/PuerkitoBio/goquery v1.12.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -58,7 +62,7 @@ require (
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/cilium/ebpf v0.21.0 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
-	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260313050455-88e279b3b32f // indirect
+	github.com/cloudwego/eino-ext/components/tool/duckduckgo/v2 v2.0.0-20260316121515-014a29323bbe // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.1.14 // indirect
 	github.com/cockroachdb/errors v1.12.0 // indirect
 	github.com/cockroachdb/logtags v0.0.0-20241215232642-bb51bb14a506 // indirect
@@ -97,6 +101,7 @@ require (
 	github.com/go-openapi/swag/stringutils v0.25.5 // indirect
 	github.com/go-openapi/swag/typeutils v0.25.5 // indirect
 	github.com/go-openapi/swag/yamlutils v0.25.5 // indirect
+	github.com/go-sql-driver/mysql v1.9.3 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
@@ -117,6 +122,12 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.3 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
 	github.com/invopop/jsonschema v0.13.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.8.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/jinzhu/inflection v1.0.0 // indirect
+	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/json-iterator/go v1.1.13-0.20220915233716-71ac16282d12 // indirect
 	github.com/klauspost/compress v1.18.4 // indirect

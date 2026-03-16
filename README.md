@@ -15,7 +15,7 @@ goops-agent/
 ## 功能特性
 
 ### 核心功能
-- **智能对话**：基于大语言模型的流式对话能力
+- **智能对话**：基于大语言模型的流式对话能力，支持OpenAI协议的大模型
 - **工具调用**：集成多种工具，支持浏览器自动化、HTTP请求、文件操作、命令执行、python脚本等
 - **Skills 集成**：支持通过官方 Skill Middleware 加载和执行预定义技能
 - **RAG 增强**：检索增强生成，提升模型回答的准确性和时效性
@@ -23,24 +23,26 @@ goops-agent/
 - **文档处理**：支持文件加载、分割和向量化
 - **对话历史**：支持将对话历史存储到向量数据库中进行上下文检索
 - **自我提升**：集成 self-improving-agent 技能，支持系统自我学习和知识库更新
-- **结构化日志**：使用 slog 进行详细的日志记录，便于调试和监控
+- **聊天应用集成**：(待开发)支持QQ、钉钉、企业微信机器人
 
 ### Tools 工具集成
-| 工具名称 | 功能说明 | 实现方式 |
-|---------|---------|---------|
-| command | 在终端中执行命令并返回输出。支持 Windows (PowerShell)、Linux 和 macOS (sh) | 自定义实现 |
-| open | 打开文件或URL，读取内容 | 自定义实现 |
-| str_replace_editor | 文件编辑器，支持创建、查看、编辑文件 | 官方库 eino-ext  |
-| python_execute | 执行 Python 代码字符串 | 官方库 eino-ext  |
-| request_get | 发送 HTTP GET 请求 | 官方库 eino-ext |
-| request_post | 发送 HTTP POST 请求 | 官方库 eino-ext |
-| request_put | 发送 HTTP PUT 请求 | 官方库 eino-ext |
-| request_delete | 发送 HTTP DELETE 请求 | 官方库 eino-ext |
-| browser_use | 浏览器自动化，支持网页交互和内容提取 | 官方库 eino-ext |
-| mcp_filesystem | MCP 文件系统工具，读写项目目录文件 | MCP 官方服务器 |
-| mcp_fetch | MCP Fetch 工具，获取网页内容 | MCP 官方服务器 |
-| mcp_memory | MCP Memory 工具，存储和检索记忆 | MCP 官方服务器 |
-| kubectl | Kubernetes 多集群管理工具，支持 get、describe、create、delete、apply 等操作 | 基于 client-go SDK 实现 |
+| 工具名称 | 功能说明 | 实现方式 | 请求参数 |
+|---------|---------|---------|----------|
+| command | 在终端中执行命令并返回输出。支持 Windows (PowerShell)、Linux 和 macOS (sh) | 自定义实现 | `command`: 要执行的命令 |
+| open | 打开文件或 URL，读取内容 | 自定义实现 | `path`: 文件路径或 URL |
+| str_replace_editor | 文件编辑器，支持创建、查看、编辑文件 | 官方库 eino-ext | `command`: 操作类型（view/create/str_replace 等）, `path`: 文件路径, `old_str`: 旧内容，`new_str`: 新内容，`view_range`: 查看范围 |
+| python_execute | 执行 Python 代码字符串 | 官方库 eino-ext | `code`: Python 代码字符串 |
+| request_get | 发送 HTTP GET 请求 | 官方库 eino-ext | `url`: 请求的 URL 地址 |
+| request_post | 发送 HTTP POST 请求 | 官方库 eino-ext | `url`: 请求的 URL 地址，`body`: 请求体（JSON 对象） |
+| request_put | 发送 HTTP PUT 请求 | 官方库 eino-ext | `url`: 请求的 URL 地址，`body`: 请求体（JSON 对象） |
+| request_delete | 发送 HTTP DELETE 请求 | 官方库 eino-ext | `url`: 请求的 URL 地址 |
+| browser_use | 浏览器自动化，支持网页交互和内容提取 | 官方库 eino-ext | `action`: 操作类型（go_to_url/click/type 等），`url`: 网址，`selector`: CSS 选择器，`text`: 输入文本 |
+| database | 数据库操作工具，支持 MySQL 和 PostgreSQL，可执行 SQL 查询、插入、更新、删除等操作 | 基于 gorm 实现 | `sql`: SQL 语句，`type`: 数据库类型（mysql/postgres），`host`: 主机地址，`port`: 端口，`user`: 用户名，`password`: 密码，`database`: 数据库名 |
+| redis | Redis 操作工具，支持各种 Redis 命令，如 SET、GET、HSET、LPUSH、SADD、ZADD 等 | 基于 go-redis 实现 | `command`: Redis 命令，`key`: 键名，`value`: 值，`field`: 字段名，`host`: 主机地址，`port`: 端口，`password`: 密码，`db`: 数据库编号 |
+| mcp_filesystem | MCP 文件系统工具，读写项目目录文件 | MCP 官方服务器 | `path`: 文件路径，`content`: 文件内容（写操作） |
+| mcp_fetch | MCP Fetch 工具，获取网页内容 | MCP 官方服务器 | `url`: 要获取的网页 URL |
+| mcp_memory | MCP Memory 工具，存储和检索记忆信息 | MCP 官方服务器 | `action`: 操作类型（save/retrieve），`query`: 查询内容，`data`: 保存的数据 |
+| kubectl | Kubernetes 多集群管理工具，支持 get、describe、create、delete、apply 等操作 | 基于 client-go SDK 实现 | `command`: kubectl 命令，`resource`: 资源类型，`name`: 资源名称，`namespace`: 命名空间，`cluster`: 集群名称，`yaml/json`: 资源配置 |
 
 ### MCP 工具说明
 
@@ -85,6 +87,127 @@ MCP (Model Context Protocol) 是由 Anthropic 推出的标准协议，用于 LLM
 - 需要在 ~/.kube/ 目录下配置 kubeconfig 文件（以集群名称命名）
 - 或者在 Kubernetes 集群内运行（使用服务账号）
 - 如果未配置 kubeconfig，kubectl 工具会自动跳过，不影响其他工具使用
+
+### database 工具说明
+
+**功能：**
+- 基于 gorm 实现的数据库操作工具
+- 支持 MySQL 和 PostgreSQL 数据库
+- 支持执行 SQL 查询、插入、更新、删除等操作
+- 支持大模型在调用时动态提供数据库连接信息
+
+**支持的数据库类型：**
+- MySQL
+- PostgreSQL
+
+**支持的 SQL 操作：**
+- SELECT 查询
+- INSERT 插入
+- UPDATE 更新
+- DELETE 删除
+- 其他 SQL 语句
+
+**使用方式：**
+
+大模型可以在调用时通过请求参数提供完整的数据库连接信息：
+
+```json
+{
+  "toolcall": {
+    "name": "database",
+    "params": {
+      "sql": "SELECT * FROM users WHERE id = 1",
+      "type": "mysql",
+      "host": "localhost",
+      "port": 3306,
+      "user": "root",
+      "password": "password",
+      "database": "test"
+    }
+  }
+}
+```
+
+**请求参数：**
+- `sql`: 要执行的 SQL 语句（必需）
+- `type`: 数据库类型，支持 mysql、postgres（可选）
+- `host`: 数据库主机地址（可选）
+- `port`: 数据库端口（可选）
+- `user`: 数据库用户名（可选）
+- `password`: 数据库密码（可选）
+- `database`: 数据库名称（可选）
+
+**环境要求：**
+- 无特殊环境要求，工具在调用时根据请求参数连接数据库
+- 如果未提供连接信息，会尝试使用默认配置连接
+- 如果默认配置连接失败，会提示用户提供完整的连接信息
+
+### redis 工具说明
+
+**功能：**
+- 基于 go-redis 实现的 Redis 操作工具
+- 支持各种 Redis 命令，包括字符串、哈希、列表、集合、有序集合等数据结构
+- 支持大模型在调用时动态提供 Redis 连接信息
+
+**支持的 Redis 命令：**
+
+| 命令 | 功能 | 示例 |
+|------|------|------|
+| SET | 设置键值 | `SET key value` |
+| GET | 获取键值 | `GET key` |
+| HSET | 设置哈希字段 | `HSET hash field value` |
+| HGET | 获取哈希字段 | `HGET hash field` |
+| LPUSH | 列表左推入 | `LPUSH list value` |
+| LPOP | 列表左弹出 | `LPOP list` |
+| SADD | 集合添加成员 | `SADD set member` |
+| SMEMBERS | 获取集合所有成员 | `SMEMBERS set` |
+| ZADD | 有序集合添加成员 | `ZADD zset score member` |
+| ZRANGE | 获取有序集合范围 | `ZRANGE zset start stop` |
+| DEL | 删除键 | `DEL key` |
+| EXISTS | 检查键是否存在 | `EXISTS key` |
+| EXPIRE | 设置键过期时间 | `EXPIRE key seconds` |
+| TTL | 获取键剩余生存时间 | `TTL key` |
+
+**使用方式：**
+
+大模型可以在调用时通过请求参数提供完整的 Redis 连接信息：
+
+```json
+{
+  "toolcall": {
+    "name": "redis",
+    "params": {
+      "command": "SET",
+      "key": "test",
+      "value": "hello",
+      "host": "localhost",
+      "port": 6379,
+      "password": "",
+      "db": 0
+    }
+  }
+}
+```
+
+**请求参数：**
+- `command`: Redis 命令，如 SET、GET、HSET、LPUSH、SADD、ZADD 等（必需）
+- `key`: 键名（根据命令不同可能需要）
+- `value`: 值（根据命令不同可能需要）
+- `field`: 字段名（用于哈希命令）
+- `score`: 分数（用于有序集合命令）
+- `count`: 数量（用于列表命令）
+- `start`: 起始索引（用于范围命令）
+- `stop`: 结束索引（用于范围命令）
+- `expire`: 过期时间（秒，用于 SET 命令）
+- `host`: Redis 主机地址（可选）
+- `port`: Redis 端口（可选）
+- `password`: Redis 密码（可选）
+- `db`: 数据库编号（可选）
+
+**环境要求：**
+- 无特殊环境要求，工具在调用时根据请求参数连接 Redis
+- 如果未提供连接信息，会尝试使用默认配置连接
+- 如果默认配置连接失败，会提示用户提供完整的连接信息
 
 ### Skills 技能列表
 

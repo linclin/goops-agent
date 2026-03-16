@@ -12,6 +12,8 @@
 package agent
 
 import (
+	"context"
+
 	"github.com/cloudwego/eino/compose"
 	"github.com/gin-gonic/gin"
 
@@ -78,21 +80,18 @@ func ChatSync(c *gin.Context) {
 	}
 	// this is for invoke option of WithCallback
 	CallbacksHandler = LogCallback(cbLogConfig)
-	// 调用 AI Agent 的 Invoke 方法获取完整响应
-	resp, err := runnable.Invoke(c.Request.Context(), userMessage, compose.WithCallbacks(CallbacksHandler))
-	if err != nil {
-		models.FailWithMessage("调用 AI Agent 失败: "+err.Error(), c)
-		return
-	}
 
-	// 异步存储对话历史到向量数据库
-	if resp.Content != "" && ai_agent.GlobalConversationManager != nil {
-		go func(userQuery, response string) {
-			if storeErr := ai_agent.GlobalConversationManager.Store(c.Request.Context(), userQuery, response); storeErr != nil {
-				// 存储失败只记录日志，不影响用户体验
-				// log.Printf("存储对话历史失败: %v", storeErr)
-			}
-		}(req.Query, resp.Content)
+	// 创建对话存储上下文，用于在 callback 中传递存储信息
+	store := &conversationStore{
+		Query: req.Query,
+	}
+	ctx := context.WithValue(c.Request.Context(), "conversation_store", store)
+
+	// 调用 AI Agent 的 Invoke 方法获取完整响应
+	resp, err := runnable.Invoke(ctx, userMessage, compose.WithCallbacks(CallbacksHandler), compose.WithCallbacks(ai_agent.ToolHelper))
+	if err != nil {
+		models.FailWithMessage("调用 AI Agent 失败："+err.Error(), c)
+		return
 	}
 
 	// 返回响应

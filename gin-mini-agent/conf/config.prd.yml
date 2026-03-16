@@ -51,4 +51,4 @@ ai-model:
   chat-model: 
     base-url: https://api-inference.modelscope.cn/v1
     api-key: xxxx
-    model: Qwen/Qwen3.5-27B
+    model: Qwen/Qwen3.5-27B 

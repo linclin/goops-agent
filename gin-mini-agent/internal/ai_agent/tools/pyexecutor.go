@@ -29,26 +29,6 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 )
 
-// PyExecutorToolImpl Python 代码执行器工具实现
-//
-// 该工具用于执行 Python 代码字符串。
-// 支持跨平台操作（Windows、macOS、Linux）。
-//
-// 使用场景:
-//   - 执行数据处理脚本
-//   - 执行算法计算
-//   - 执行文件处理脚本
-//   - 快速验证 Python 代码
-//
-// 注意事项:
-//   - 只有 print 输出可见，函数返回值不会被捕获
-//   - 使用 print 语句查看结果
-//   - 代码在临时文件中执行
-type PyExecutorToolImpl struct {
-	// config 工具配置
-	config *PyExecutorToolConfig
-}
-
 // PyExecutorToolConfig Python 执行器工具配置
 //
 // 可配置 Python 解释器路径。
@@ -74,6 +54,13 @@ func defaultPyExecutorToolConfig() *PyExecutorToolConfig {
 	}
 }
 
+// PyExecutorToolImpl Python 执行器工具实现
+//
+// 该工具用于执行 Python 代码字符串。
+type PyExecutorToolImpl struct {
+	config *PyExecutorToolConfig
+}
+
 // NewPyExecutorTool 创建 Python 执行器工具实例
 //
 // 该函数创建一个用于执行 Python 代码的工具。
@@ -97,40 +84,15 @@ func NewPyExecutorTool(ctx context.Context, config *PyExecutorToolConfig) (tool.
 	}
 
 	t := &PyExecutorToolImpl{config: config}
-
 	return t.ToEinoTool()
 }
 
 // ToEinoTool 转换为 Eino 工具接口
-//
-// 该方法将工具实现转换为 Eino 框架的工具接口。
-// 使用 utils.InferTool 自动推断工具的参数和返回值类型。
-//
-// 返回:
-//   - tool.InvokableTool: Eino 工具实例
-//   - error: 转换错误
 func (p *PyExecutorToolImpl) ToEinoTool() (tool.InvokableTool, error) {
 	return utils.InferTool("python_execute", "执行 Python 代码字符串。注意：只有 print 输出可见，函数返回值不会被捕获，请使用 print 语句查看结果。", p.Invoke)
 }
 
 // Invoke 执行 Python 代码
-//
-// 该方法是工具的核心实现，负责执行 Python 代码字符串。
-//
-// 参数:
-//   - ctx: 上下文，用于控制超时和取消
-//   - req: 执行请求，包含要执行的 Python 代码
-//
-// 返回:
-//   - PyExecutorRes: 执行结果，包含输出或错误信息
-//   - error: 执行错误（工具内部错误，非代码执行错误）
-//
-// 执行流程:
-//  1. 检查 Python 解释器是否可用
-//  2. 创建临时 Python 文件
-//  3. 执行代码
-//  4. 收集输出
-//  5. 清理临时文件
 func (p *PyExecutorToolImpl) Invoke(ctx context.Context, req PyExecutorReq) (PyExecutorRes, error) {
 	slog.InfoContext(ctx, "[python_execute] 工具调用开始", "code_length", len(req.Code))
 
@@ -141,7 +103,7 @@ func (p *PyExecutorToolImpl) Invoke(ctx context.Context, req PyExecutorReq) (PyE
 		}, nil
 	}
 
-	if !p.checkPythonAvailable() {
+	if !checkPythonAvailable(p.config.Command) {
 		slog.ErrorContext(ctx, "[python_execute] Python 解释器不可用")
 		return PyExecutorRes{
 			Error: "Python 解释器不可用。请确保已安装 Python 并添加到系统 PATH 环境变量中。",
@@ -204,14 +166,17 @@ func (p *PyExecutorToolImpl) Invoke(ctx context.Context, req PyExecutorReq) (PyE
 //
 // 该函数尝试运行 Python 解释器来验证其是否正确安装。
 //
+// 参数:
+//   - command: Python 解释器命令
+//
 // 返回:
 //   - bool: true 表示可用，false 表示不可用
-func (p *PyExecutorToolImpl) checkPythonAvailable() bool {
+func checkPythonAvailable(command string) bool {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		cmd = exec.Command(p.config.Command, "--version")
+		cmd = exec.Command(command, "--version")
 	} else {
-		cmd = exec.Command(p.config.Command, "--version")
+		cmd = exec.Command(command, "--version")
 	}
 
 	err := cmd.Run()

@@ -52,6 +52,12 @@ type ChatRequest struct {
 	History []*schema.Message `json:"history"`
 }
 
+// conversationStore 用于在 callback 中存储对话历史
+type conversationStore struct {
+	Query   string
+	UserMsg *ai_agent.UserMessage
+}
+
 // SSEEvent SSE 事件结构
 //
 // 该结构体定义了 Server-Sent Events (SSE) 的事件格式。
@@ -148,16 +154,20 @@ func ChatSse(c *gin.Context) {
 	}
 	// this is for invoke option of WithCallback
 	CallbacksHandler = LogCallback(cbLogConfig)
+
+	// 创建对话存储上下文，用于在 callback 中传递存储信息
+	store := &conversationStore{
+		Query: req.Query,
+	}
+	ctx := context.WithValue(c.Request.Context(), "conversation_store", store)
+
 	// 调用 AI Agent 的 Stream 方法获取流式响应
-	streamReader, err := runnable.Stream(c.Request.Context(), userMessage, compose.WithCallbacks(CallbacksHandler))
+	streamReader, err := runnable.Stream(ctx, userMessage, compose.WithCallbacks(CallbacksHandler), compose.WithCallbacks(ai_agent.ToolHelper))
 	if err != nil {
-		models.FailWithMessage("调用 AI Agent 失败: "+err.Error(), c)
+		models.FailWithMessage("调用 AI Agent 失败："+err.Error(), c)
 		return
 	}
 	defer streamReader.Close()
-
-	// 用于收集 AI 回复内容（用于存储对话历史）
-	var aiResponse string
 
 	// 设置 SSE 响应头
 	c.Header("Content-Type", "text/event-stream")
@@ -165,34 +175,17 @@ func ChatSse(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 
 	// 开始流式传输
-	// c.Stream 的回调函数返回 bool：
-	//   - true: 继续流式传输
-	//   - false: 结束流式传输
 	c.Stream(func(w io.Writer) bool {
 		// 发送开始事件
 		io.WriteString(w, sseEvent("start", ""))
 
 		// 循环接收流式数据
 		for {
-			// 从 StreamReader 接收数据
 			resp, err := streamReader.Recv()
 			if err != nil {
 				if err.Error() == "EOF" {
 					// 流结束，发送完成事件
 					io.WriteString(w, sseEvent("done", ""))
-
-					// 异步存储对话历史到向量数据库
-					// 在后台执行，不阻塞响应
-					if aiResponse != "" && ai_agent.GlobalConversationManager != nil {
-						go func(userQuery, response string) {
-							// 使用后台上下文存储，不阻塞响应
-							storeCtx := c.Request.Context()
-							if storeErr := ai_agent.GlobalConversationManager.Store(storeCtx, userQuery, response); storeErr != nil {
-								// 存储失败只记录日志，不影响用户体验
-								// log.Printf("存储对话历史失败: %v", storeErr)
-							}
-						}(req.Query, aiResponse)
-					}
 					break
 				} else {
 					// 发生错误，发送错误事件
@@ -207,11 +200,7 @@ func ChatSse(c *gin.Context) {
 
 			// 处理接收到的消息
 			if resp != nil && resp.Content != "" {
-				// 收集 AI 回复内容（用于存储对话历史）
-				aiResponse += resp.Content
-
 				// 逐字发送消息内容
-				// 每个字符作为单独的 SSE 事件发送
 				for _, char := range resp.Content {
 					data, _ := json.Marshal(SSEEvent{
 						Event: "message",
@@ -237,65 +226,73 @@ func LogCallback(config *LogCallbackConfig) callbacks.Handler {
 			Detail: true,
 		}
 	}
+
 	builder := callbacks.NewHandlerBuilder()
+
+	// 简化版：只记录关键节点日志，移除冗余的 tool 监控
 	builder.OnStartFn(func(ctx context.Context, info *callbacks.RunInfo, input callbacks.CallbackInput) context.Context {
-		slog.InfoContext(ctx, "[callback] 节点开始执行",
-			"component", info.Component,
-			"type", info.Type,
-			"name", info.Name)
-
-		// 监控工具调用，特别是 skill 工具
-		if info.Component == "tool" {
-			slog.InfoContext(ctx, "[callback] 工具调用开始",
-				"tool_name", info.Name,
-				"tool_type", info.Type)
-
-			// 检查是否是 skill 工具
-			if info.Name == "skill" {
-				slog.InfoContext(ctx, "[callback] 🎯 Skill 工具被调用！")
-			}
-		}
-
-		if config.Detail {
-			var b []byte
-			if config.Debug {
-				b, _ = json.MarshalIndent(input, "", "  ")
-			} else {
-				b, _ = json.Marshal(input)
-			}
-			slog.DebugContext(ctx, "[callback] 输入数据", "input", string(b))
+		if config.Debug {
+			slog.DebugContext(ctx, "[callback] 节点开始",
+				"component", info.Component,
+				"name", info.Name)
 		}
 		return ctx
 	})
+
 	builder.OnEndFn(func(ctx context.Context, info *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
-		slog.InfoContext(ctx, "[callback] 节点执行完成",
-			"component", info.Component,
-			"type", info.Type,
-			"name", info.Name)
+		// 检测是否为最终响应节点并完成对话存储
+		if info.Component == "graph" && info.Name == "ReactAgent" {
+			if store, ok := ctx.Value("conversation_store").(*conversationStore); ok && store != nil {
+				// 提取 AI 响应内容
+				var aiResponse string
+				if msg, ok := output.(*schema.Message); ok && msg != nil {
+					aiResponse = msg.Content
+				}
 
-		// 监控工具调用完成
-		if info.Component == "tool" && info.Name == "skill" {
-			slog.InfoContext(ctx, "[callback] 🎯 Skill 工具调用完成！")
+				// 异步存储对话历史
+				if aiResponse != "" && ai_agent.GlobalConversationManager != nil {
+					go func(query string, response string) {
+						if err := ai_agent.GlobalConversationManager.Store(context.Background(), query, response); err != nil {
+							slog.Warn("存储对话历史失败", "error", err)
+						}
+					}(store.Query, aiResponse)
+				}
+			}
 		}
 
-		if config.Detail {
-			var b []byte
-			if config.Debug {
-				b, _ = json.MarshalIndent(output, "", "  ")
-			} else {
-				b, _ = json.Marshal(output)
-			}
-			slog.DebugContext(ctx, "[callback] 输出数据", "output", string(b))
+		if config.Debug {
+			slog.DebugContext(ctx, "[callback] 节点完成",
+				"component", info.Component,
+				"name", info.Name)
 		}
 		return ctx
 	})
+
 	builder.OnErrorFn(func(ctx context.Context, info *callbacks.RunInfo, err error) context.Context {
-		slog.ErrorContext(ctx, "[callback] 节点执行错误",
+		slog.ErrorContext(ctx, "[callback] 节点错误",
 			"component", info.Component,
-			"type", info.Type,
 			"name", info.Name,
 			"error", err)
 		return ctx
 	})
+	// 流式输入/输出只记录简单日志
+	builder.OnStartWithStreamInputFn(func(ctx context.Context, info *callbacks.RunInfo, input *schema.StreamReader[callbacks.CallbackInput]) context.Context {
+		if config.Debug {
+			slog.DebugContext(ctx, "[callback] 流式输入开始",
+				"component", info.Component,
+				"name", info.Name)
+		}
+		return ctx
+	})
+
+	builder.OnEndWithStreamOutputFn(func(ctx context.Context, info *callbacks.RunInfo, output *schema.StreamReader[callbacks.CallbackOutput]) context.Context {
+		if config.Debug {
+			slog.DebugContext(ctx, "[callback] 流式输出完成",
+				"component", info.Component,
+				"name", info.Name)
+		}
+		return ctx
+	})
+
 	return builder.Build()
 }

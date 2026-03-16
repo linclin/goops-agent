@@ -18,9 +18,14 @@ package ai_agent
 
 import (
 	"context"
+	"errors"
+	"io"
 
 	"github.com/cloudwego/eino/adk"
+	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/components/tool"
+	"github.com/cloudwego/eino/schema"
+	callbackHelper "github.com/cloudwego/eino/utils/callbacks"
 
 	"gin-mini-agent/internal/ai_agent/tools"
 	"gin-mini-agent/pkg/global"
@@ -141,6 +146,24 @@ func GetTools(ctx context.Context, skillMiddleware adk.AgentMiddleware) ([]tool.
 		// 继续执行，不影响其他工具
 	}
 
+	// 创建数据库工具（基于 gorm 实现）
+	// 功能: 操作数据库，支持 MySQL 和 PostgreSQL，可执行 SQL 查询、插入、更新、删除等操作
+	// 用途: 当用户需要查询或操作数据库时使用
+	toolDatabase, err := tools.NewDatabaseTool(ctx, nil)
+	if err != nil {
+		global.Log.Warn("创建 database 工具失败", "error", err)
+		// 继续执行，不影响其他工具
+	}
+
+	// 创建 Redis 工具（基于 go-redis 实现）
+	// 功能: 操作 Redis 数据库，支持各种 Redis 命令，如 SET、GET、HSET、LPUSH、SADD、ZADD 等
+	// 用途: 当用户需要操作 Redis 或缓存数据时使用
+	toolRedis, err := tools.NewRedisTool(ctx, nil)
+	if err != nil {
+		global.Log.Warn("创建 redis 工具失败", "error", err)
+		// 继续执行，不影响其他工具
+	}
+
 	// 构建工具列表
 	toolList := []tool.BaseTool{
 		toolOpen,
@@ -158,6 +181,18 @@ func GetTools(ctx context.Context, skillMiddleware adk.AgentMiddleware) ([]tool.
 	if toolKubectl != nil {
 		toolList = append(toolList, toolKubectl)
 		global.Log.Info("kubectl 工具加载成功")
+	}
+
+	// 添加 database 工具（如果创建成功）
+	if toolDatabase != nil {
+		toolList = append(toolList, toolDatabase)
+		global.Log.Info("database 工具加载成功")
+	}
+
+	// 添加 redis 工具（如果创建成功）
+	if toolRedis != nil {
+		toolList = append(toolList, toolRedis)
+		global.Log.Info("redis 工具加载成功")
 	}
 
 	// 加载 MCP 工具
@@ -247,3 +282,38 @@ func loadMCPTools(ctx context.Context) []tool.BaseTool {
 
 	return mcpTools
 }
+
+// 创建 callback handler
+var toolHandler = &callbackHelper.ToolCallbackHandler{
+	OnStart: func(ctx context.Context, info *callbacks.RunInfo, input *tool.CallbackInput) context.Context {
+		global.Log.Info("开始执行工具", "arguments", input.ArgumentsInJSON)
+		return ctx
+	},
+	OnEnd: func(ctx context.Context, info *callbacks.RunInfo, output *tool.CallbackOutput) context.Context {
+		global.Log.Info("工具执行完成", "response", output.Response)
+		return ctx
+	},
+	OnEndWithStreamOutput: func(ctx context.Context, info *callbacks.RunInfo, output *schema.StreamReader[*tool.CallbackOutput]) context.Context {
+		global.Log.Info("工具开始流式输出")
+		go func() {
+			defer output.Close()
+
+			for {
+				chunk, err := output.Recv()
+				if errors.Is(err, io.EOF) {
+					return
+				}
+				if err != nil {
+					return
+				}
+				global.Log.Info("收到流式输出", "response", chunk.Response)
+			}
+		}()
+		return ctx
+	},
+}
+
+// 使用 callback handler
+var ToolHelper = callbackHelper.NewHandlerHelper().
+	Tool(toolHandler).
+	Handler()

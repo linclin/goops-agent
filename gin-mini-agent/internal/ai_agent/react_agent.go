@@ -18,6 +18,7 @@ package ai_agent
 
 import (
 	"context"
+	"gin-mini-agent/pkg/global"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/compose"
@@ -92,7 +93,29 @@ func newReactAgent(ctx context.Context, skillMiddleware adk.AgentMiddleware) (lb
 		return nil, err
 	}
 	config.ToolsConfig.Tools = tools
-
+	config.ToolsConfig.ToolCallMiddlewares = []compose.ToolMiddleware{
+		{
+			// 标准工具中间件
+			Invokable: func(next compose.InvokableToolEndpoint) compose.InvokableToolEndpoint {
+				return func(ctx context.Context, input *compose.ToolInput) (*compose.ToolOutput, error) {
+					global.Log.Info("调用标准工具", "tool", input.Name)
+					return next(ctx, input)
+				}
+			},
+			// 增强型工具中间件
+			EnhancedInvokable: func(next compose.EnhancedInvokableToolEndpoint) compose.EnhancedInvokableToolEndpoint {
+				return func(ctx context.Context, input *compose.ToolInput) (*compose.EnhancedInvokableToolOutput, error) {
+					global.Log.Info("调用增强型工具", "tool", input.Name)
+					output, err := next(ctx, input)
+					if err != nil {
+						return nil, err
+					}
+					global.Log.Info("增强型工具返回", "tool", input.Name, "parts_count", len(output.Result.Parts))
+					return output, nil
+				}
+			},
+		},
+	}
 	// 创建 ReAct Agent 实例
 	// 该实例实现了 Generate（同步）和 Stream（流式）两个方法
 	ins, err := react.NewAgent(ctx, config)

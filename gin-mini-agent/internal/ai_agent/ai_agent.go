@@ -248,7 +248,9 @@ func BuildAiAgent(ctx context.Context, skillBackend skill.Backend, skillMiddlewa
 	// WithGraphName: 设置图的名称，便于调试和监控
 	// WithNodeTriggerMode: 设置节点触发模式为 AllPredecessor
 	//   即所有前驱节点完成后才触发当前节点执行
-	r, err = g.Compile(ctx, compose.WithGraphName("AiAgent"), compose.WithNodeTriggerMode(compose.AllPredecessor))
+	r, err = g.Compile(ctx, compose.WithGraphName("AiAgent"),
+		compose.WithNodeTriggerMode(compose.AllPredecessor),
+	)
 	if err != nil {
 		return nil, err
 	}

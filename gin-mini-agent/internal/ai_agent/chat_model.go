@@ -77,6 +77,5 @@ func newChatModel(ctx context.Context) (cm model.ToolCallingChatModel, err error
 	if err != nil {
 		return nil, err
 	}
-
 	return cm, nil
 }

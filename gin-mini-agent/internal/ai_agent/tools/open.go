@@ -46,25 +46,6 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 )
 
-// OpenFileToolImpl 打开文件工具实现
-//
-// 该工具用于在系统默认应用中打开文件、目录或网页链接。
-// 支持跨平台操作（Windows、macOS、Linux）。
-//
-// 使用场景:
-//   - 用户要求打开某个文件查看
-//   - 用户要求打开某个网页
-//   - 用户要求打开某个目录
-//
-// 示例:
-//   - 打开文件: file:///path/to/file.txt
-//   - 打开网页: https://example.com
-//   - 打开目录: /path/to/directory
-type OpenFileToolImpl struct {
-	// config 工具配置
-	config *OpenFileToolConfig
-}
-
 // OpenFileToolConfig 打开文件工具配置
 //
 // 当前配置为空，保留用于未来扩展。
@@ -86,6 +67,13 @@ func defaultOpenFileToolConfig(ctx context.Context) (*OpenFileToolConfig, error)
 	return config, nil
 }
 
+// OpenFileToolImpl 打开文件工具实现
+//
+// 该工具用于打开文件/目录/网页链接。
+type OpenFileToolImpl struct {
+	config *OpenFileToolConfig
+}
+
 // NewOpenFileTool 创建打开文件工具实例
 //
 // 该函数创建一个用于打开文件/目录/网页的工具。
@@ -103,92 +91,50 @@ func defaultOpenFileToolConfig(ctx context.Context) (*OpenFileToolConfig, error)
 //
 //	tool, err := NewOpenFileTool(ctx, nil)
 //	result, err := tool.Invoke(ctx, OpenReq{URI: "https://example.com"})
-func NewOpenFileTool(ctx context.Context, config *OpenFileToolConfig) (tn tool.BaseTool, err error) {
+func NewOpenFileTool(ctx context.Context, config *OpenFileToolConfig) (tool.BaseTool, error) {
 	// 如果配置为空，使用默认配置
 	if config == nil {
+		var err error
 		config, err = defaultOpenFileToolConfig(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// 创建工具实例
 	t := &OpenFileToolImpl{config: config}
-
-	// 转换为 Eino 工具
-	tn, err = t.ToEinoTool()
-	if err != nil {
-		return nil, err
-	}
-	return tn, nil
+	return t.ToEinoTool()
 }
 
 // ToEinoTool 转换为 Eino 工具接口
-//
-// 该方法将工具实现转换为 Eino 框架的工具接口。
-// 使用 utils.InferTool 自动推断工具的参数和返回值类型。
-//
-// 返回:
-//   - tool.InvokableTool: Eino 工具实例
-//   - error: 转换错误
-func (of *OpenFileToolImpl) ToEinoTool() (tool.InvokableTool, error) {
-	// 使用 InferTool 自动生成工具信息
-	// 参数:
-	//   - name: 工具名称，用于 Agent 识别
-	//   - description: 工具描述，帮助 Agent 理解工具用途
-	//   - invoke: 工具调用函数
-	return utils.InferTool("open", "在系统默认应用中打开文件/目录/网页链接", of.Invoke)
+func (o *OpenFileToolImpl) ToEinoTool() (tool.InvokableTool, error) {
+	return utils.InferTool("open", "在系统默认应用中打开文件/目录/网页链接", o.Invoke)
 }
 
 // Invoke 执行打开操作
-//
-// 该方法是工具的核心实现，负责打开指定的 URI。
-//
-// 参数:
-//   - ctx: 上下文，用于控制超时和取消
-//   - req: 打开请求，包含要打开的 URI
-//
-// 返回:
-//   - OpenRes: 打开结果，包含操作消息
-//   - error: 执行错误
-//
-// 支持的 URI 类型:
-//   - 文件路径: file:///path/to/file 或直接使用路径
-//   - 网页链接: http:// 或 https://
-//   - 目录路径: /path/to/directory
-//
-// 跨平台支持:
-//   - Windows: 使用 rundll32 打开
-//   - macOS: 使用 open 命令
-//   - Linux: 使用 xdg-open 命令
-func (of *OpenFileToolImpl) Invoke(ctx context.Context, req OpenReq) (res OpenRes, err error) {
+func (o *OpenFileToolImpl) Invoke(ctx context.Context, req OpenReq) (OpenRes, error) {
 	slog.InfoContext(ctx, "[open] 工具调用开始", "uri", req.URI)
 
 	if req.URI == "" {
 		slog.WarnContext(ctx, "[open] URI 为空")
-		res.Message = "URI 不能为空"
-		return res, nil
+		return OpenRes{Message: "URI 不能为空"}, nil
 	}
 
 	if isFilePath(req.URI) {
 		req.URI = strings.TrimPrefix(req.URI, "file:///")
 		if _, err := os.Stat(req.URI); err != nil {
 			slog.ErrorContext(ctx, "[open] 文件不存在", "uri", req.URI, "error", err)
-			res.Message = fmt.Sprintf("文件不存在: %s", req.URI)
-			return res, nil
+			return OpenRes{Message: fmt.Sprintf("文件不存在: %s", req.URI)}, nil
 		}
 	}
 
-	err = openURI(req.URI)
+	err := openURI(req.URI)
 	if err != nil {
 		slog.ErrorContext(ctx, "[open] 打开失败", "uri", req.URI, "error", err)
-		res.Message = fmt.Sprintf("打开失败 %s: %s", req.URI, err.Error())
-		return res, nil
+		return OpenRes{Message: fmt.Sprintf("打开失败 %s: %s", req.URI, err.Error())}, nil
 	}
 
 	slog.InfoContext(ctx, "[open] 工具调用成功", "uri", req.URI)
-	res.Message = fmt.Sprintf("成功，已打开 %s", req.URI)
-	return res, nil
+	return OpenRes{Message: fmt.Sprintf("成功，已打开 %s", req.URI)}, nil
 }
 
 // OpenReq 打开请求结构体

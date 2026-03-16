@@ -33,24 +33,6 @@ import (
 	"github.com/cloudwego/eino/components/tool/utils"
 )
 
-// CommandToolImpl 命令执行工具实现
-//
-// 该工具用于在系统终端中执行命令，支持 Windows、Linux 和 macOS。
-// 提供安全检查机制，防止执行危险命令。
-//
-// 使用场景:
-//   - 执行系统命令获取信息
-//   - 运行脚本或程序
-//   - 文件操作（复制、移动、删除等）
-//
-// 安全特性:
-//   - 危险命令检测与拦截
-//   - 超时控制
-//   - 工作目录限制
-type CommandToolImpl struct {
-	config *CommandToolConfig
-}
-
 // CommandToolConfig 命令执行工具配置
 //
 // 可配置超时时间、工作目录和安全限制。
@@ -86,6 +68,13 @@ func defaultCommandToolConfig() *CommandToolConfig {
 	}
 }
 
+// CommandToolImpl 命令执行工具实现
+//
+// 该工具用于在终端中执行命令并返回输出。
+type CommandToolImpl struct {
+	config *CommandToolConfig
+}
+
 // NewCommandTool 创建命令执行工具实例
 //
 // 该函数创建一个用于执行系统命令的工具。
@@ -112,32 +101,18 @@ func NewCommandTool(ctx context.Context, config *CommandToolConfig) (tool.Invoka
 	}
 
 	t := &CommandToolImpl{config: config}
+	return t.ToEinoTool()
+}
 
-	return utils.InferTool(
-		"execute",
-		`在终端中执行命令并返回输出。
+// ToEinoTool 转换为 Eino 工具接口
+func (c *CommandToolImpl) ToEinoTool() (tool.InvokableTool, error) {
+	return utils.InferTool("execute", `在终端中执行命令并返回输出。
 支持 Windows (PowerShell)、Linux 和 macOS (sh)。
 注意：危险命令（如 rm -rf、format、shutdown 等）将被拦截。
-输入应为要执行的命令字符串。`,
-		t.Invoke,
-	)
+输入应为要执行的命令字符串。`, c.Invoke)
 }
 
 // Invoke 执行命令
-//
-// 该方法是工具的核心实现，负责执行指定的命令。
-//
-// 参数:
-//   - ctx: 上下文，用于控制超时和取消
-//   - req: 命令请求，包含要执行的命令
-//
-// 返回:
-//   - CommandRes: 执行结果，包含输出和错误信息
-//   - error: 执行错误
-//
-// 支持的平台:
-//   - Windows: 使用 PowerShell 执行
-//   - Linux/macOS: 使用 sh 执行
 func (c *CommandToolImpl) Invoke(ctx context.Context, req CommandReq) (CommandRes, error) {
 	slog.InfoContext(ctx, "[execute] 工具调用开始", "command", req.Command)
 
@@ -149,7 +124,7 @@ func (c *CommandToolImpl) Invoke(ctx context.Context, req CommandReq) (CommandRe
 		}, nil
 	}
 
-	if err := c.guardCommand(req.Command); err != nil {
+	if err := guardCommand(req.Command, c.config); err != nil {
 		slog.ErrorContext(ctx, "[execute] 安全检查失败", "command", req.Command, "error", err)
 		return CommandRes{
 			Success: false,
@@ -165,7 +140,7 @@ func (c *CommandToolImpl) Invoke(ctx context.Context, req CommandReq) (CommandRe
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
-	cmd := c.buildCommand(ctx, req.Command)
+	cmd := buildCommand(ctx, req.Command)
 
 	if c.config.WorkingDir != "" {
 		cmd.Dir = c.config.WorkingDir
@@ -202,7 +177,7 @@ func (c *CommandToolImpl) Invoke(ctx context.Context, req CommandReq) (CommandRe
 		if result.Len() > 0 {
 			return CommandRes{
 				Success: false,
-				Output:  c.truncateOutput(result.String()),
+				Output:  truncateOutput(result.String(), c.config),
 				Error:   fmt.Sprintf("命令执行失败: %s", err.Error()),
 			}, nil
 		}
@@ -223,8 +198,112 @@ func (c *CommandToolImpl) Invoke(ctx context.Context, req CommandReq) (CommandRe
 	slog.InfoContext(ctx, "[execute] 执行成功", "command", req.Command, "output_length", result.Len())
 	return CommandRes{
 		Success: true,
-		Output:  c.truncateOutput(result.String()),
+		Output:  truncateOutput(result.String(), c.config),
 	}, nil
+}
+
+// buildCommand 根据操作系统构建命令
+//
+// 该函数根据操作系统选择合适的 Shell 执行命令。
+//
+// 参数:
+//   - ctx: 上下文
+//   - command: 要执行的命令字符串
+//
+// 返回:
+//   - *exec.Cmd: 构建好的命令对象
+func buildCommand(ctx context.Context, command string) *exec.Cmd {
+	switch runtime.GOOS {
+	case "windows":
+		return exec.CommandContext(ctx, "powershell", "-Command", command)
+	default:
+		return exec.CommandContext(ctx, "sh", "-c", command)
+	}
+}
+
+// truncateOutput 截断过长的输出
+//
+// 该函数限制输出长度，防止返回过多数据。
+//
+// 参数:
+//   - output: 原始输出
+//   - config: 工具配置
+//
+// 返回:
+//   - string: 截断后的输出
+func truncateOutput(output string, config *CommandToolConfig) string {
+	maxLen := config.MaxOutputLength
+	if maxLen <= 0 {
+		maxLen = 50000
+	}
+	if len(output) > maxLen {
+		return output[:maxLen] + "\n... (输出已截断)"
+	}
+	return output
+}
+
+// guardCommand 命令安全检查
+//
+// 该函数检查命令是否包含危险操作。
+//
+// 参数:
+//   - command: 要检查的命令
+//   - config: 工具配置
+//
+// 返回:
+//   - error: 如果命令危险，返回错误
+func guardCommand(command string, config *CommandToolConfig) error {
+	for _, pattern := range denyPatterns {
+		if pattern.MatchString(command) {
+			return fmt.Errorf("检测到潜在危险操作，命令已被拦截")
+		}
+	}
+
+	if config.RestrictToWorkspace && config.WorkingDir != "" {
+		if strings.Contains(command, "../") {
+			return fmt.Errorf("工作目录限制模式下不允许使用路径遍历 (../)")
+		}
+
+		absPaths := extractAbsolutePaths(command)
+		cwdAbs, err := filepath.Abs(config.WorkingDir)
+		if err == nil {
+			for _, p := range absPaths {
+				pAbs, err := filepath.Abs(p)
+				if err != nil {
+					continue
+				}
+				if !strings.HasPrefix(pAbs, cwdAbs) {
+					return fmt.Errorf("路径 %q 不在工作目录 %q 内", p, config.WorkingDir)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// extractAbsolutePaths 从命令字符串中提取绝对路径
+//
+// 该函数用于路径安全检查。
+//
+// 参数:
+//   - command: 命令字符串
+//
+// 返回:
+//   - []string: 提取的绝对路径列表
+func extractAbsolutePaths(command string) []string {
+	matches := absolutePathRe.FindAllStringSubmatch(command, -1)
+	var paths []string
+	for _, m := range matches {
+		if len(m) > 1 {
+			p := m[1]
+			if p == "/dev/null" || p == "/dev/stdin" || p == "/dev/stdout" || p == "/dev/stderr" {
+				continue
+			}
+			paths = append(paths, p)
+		}
+	}
+	return paths
 }
 
 // CommandReq 命令请求结构体
@@ -252,45 +331,6 @@ type CommandRes struct {
 	Error string `json:"error,omitempty" jsonschema_description:"错误信息（如果有）"`
 }
 
-// buildCommand 根据操作系统构建命令
-//
-// 该函数根据操作系统选择合适的 Shell 执行命令。
-//
-// 参数:
-//   - ctx: 上下文
-//   - command: 要执行的命令字符串
-//
-// 返回:
-//   - *exec.Cmd: 构建好的命令对象
-func (c *CommandToolImpl) buildCommand(ctx context.Context, command string) *exec.Cmd {
-	switch runtime.GOOS {
-	case "windows":
-		return exec.CommandContext(ctx, "powershell", "-Command", command)
-	default:
-		return exec.CommandContext(ctx, "sh", "-c", command)
-	}
-}
-
-// truncateOutput 截断过长的输出
-//
-// 该函数限制输出长度，防止返回过多数据。
-//
-// 参数:
-//   - output: 原始输出
-//
-// 返回:
-//   - string: 截断后的输出
-func (c *CommandToolImpl) truncateOutput(output string) string {
-	maxLen := c.config.MaxOutputLength
-	if maxLen <= 0 {
-		maxLen = 50000
-	}
-	if len(output) > maxLen {
-		return output[:maxLen] + "\n... (输出已截断)"
-	}
-	return output
-}
-
 // denyPatterns 危险命令正则模式列表
 //
 // 这些模式用于检测可能造成系统损坏的危险命令。
@@ -310,71 +350,8 @@ var denyPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\bRestart-Computer\b`),
 }
 
-// guardCommand 命令安全检查
-//
-// 该函数检查命令是否包含危险操作。
-//
-// 参数:
-//   - command: 要检查的命令
-//
-// 返回:
-//   - error: 如果命令危险，返回错误
-func (c *CommandToolImpl) guardCommand(command string) error {
-	for _, pattern := range denyPatterns {
-		if pattern.MatchString(command) {
-			return fmt.Errorf("检测到潜在危险操作，命令已被拦截")
-		}
-	}
-
-	if c.config.RestrictToWorkspace && c.config.WorkingDir != "" {
-		if strings.Contains(command, "../") {
-			return fmt.Errorf("工作目录限制模式下不允许使用路径遍历 (../)")
-		}
-
-		absPaths := c.extractAbsolutePaths(command)
-		cwdAbs, err := filepath.Abs(c.config.WorkingDir)
-		if err == nil {
-			for _, p := range absPaths {
-				pAbs, err := filepath.Abs(p)
-				if err != nil {
-					continue
-				}
-				if !strings.HasPrefix(pAbs, cwdAbs) {
-					return fmt.Errorf("路径 %q 不在工作目录 %q 内", p, c.config.WorkingDir)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 // absolutePathRe 匹配命令中的绝对路径
 var absolutePathRe = regexp.MustCompile(`(?:^|\s)(/[^\s;|&>]+)`)
-
-// extractAbsolutePaths 从命令字符串中提取绝对路径
-//
-// 该函数用于路径安全检查。
-//
-// 参数:
-//   - command: 命令字符串
-//
-// 返回:
-//   - []string: 提取的绝对路径列表
-func (c *CommandToolImpl) extractAbsolutePaths(command string) []string {
-	matches := absolutePathRe.FindAllStringSubmatch(command, -1)
-	var paths []string
-	for _, m := range matches {
-		if len(m) > 1 {
-			p := m[1]
-			if p == "/dev/null" || p == "/dev/stdin" || p == "/dev/stdout" || p == "/dev/stderr" {
-				continue
-			}
-			paths = append(paths, p)
-		}
-	}
-	return paths
-}
 
 // GetShellInfo 获取当前系统 Shell 信息
 //

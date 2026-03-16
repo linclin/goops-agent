@@ -39,6 +39,8 @@ import "log/slog"
 //	    base-url: "https://api.openai.com/v1"
 //	    api-key: "sk-xxx"
 //	    model: "gpt-4"
+//	agent:
+//	  max-run-steps: 100
 type Configuration struct {
 	// System 系统配置
 	// 包含应用名称、运行模式、端口等基础配置
