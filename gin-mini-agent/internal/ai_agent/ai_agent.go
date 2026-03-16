@@ -41,9 +41,12 @@ package ai_agent
 
 import (
 	"context"
+	"fmt"
+	"gin-mini-agent/pkg/global"
 
 	"github.com/cloudwego/eino/adk"
 	"github.com/cloudwego/eino/adk/middlewares/skill"
+	"github.com/cloudwego/eino/callbacks"
 	"github.com/cloudwego/eino/compose"
 	"github.com/cloudwego/eino/schema"
 )
@@ -243,7 +246,6 @@ func BuildAiAgent(ctx context.Context, skillBackend skill.Backend, skillMiddlewa
 	// ReactAgent -> END
 	// 推理完成后结束
 	_ = g.AddEdge(ReactAgent, compose.END)
-
 	// 编译图
 	// WithGraphName: 设置图的名称，便于调试和监控
 	// WithNodeTriggerMode: 设置节点触发模式为 AllPredecessor
@@ -254,5 +256,22 @@ func BuildAiAgent(ctx context.Context, skillBackend skill.Backend, skillMiddlewa
 	if err != nil {
 		return nil, err
 	}
+	graphHandler := callbacks.NewHandlerBuilder().
+		OnStartFn(func(ctx context.Context, info *callbacks.RunInfo, input callbacks.CallbackInput) context.Context {
+			global.Log.Info(fmt.Sprintf("[Graph Start] component=%s name=%s input=%T", info.Component, info.Name, input))
+			return ctx
+		}).
+		OnEndFn(func(ctx context.Context, info *callbacks.RunInfo, output callbacks.CallbackOutput) context.Context {
+			global.Log.Info(fmt.Sprintf("[Graph End] component=%s name=%s output=%T", info.Component, info.Name, output))
+			return ctx
+		}).
+		OnErrorFn(func(ctx context.Context, info *callbacks.RunInfo, err error) context.Context {
+			global.Log.Info(fmt.Sprintf("[Graph Error] component=%s name=%s err=%v", info.Component, info.Name, err))
+			return ctx
+		}).
+		Build()
+
+	// Register as global callbacks (applies to all subsequent runs)
+	callbacks.AppendGlobalHandlers(graphHandler)
 	return r, err
 }
